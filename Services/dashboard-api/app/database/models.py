@@ -35,6 +35,8 @@ class DistribusiSusu(Base):
     jumlah = Column(Float)
     satuan = Column(String)
     harga_berlaku = Column(Float)
+    id_unit_ternak = Column(Integer, ForeignKey('unit_ternak.id'))
+    id_jenis_produk = Column(Integer, ForeignKey('jenis_produk.id'))
     
 class ProduksiSusu(Base):
     
@@ -45,3 +47,17 @@ class ProduksiSusu(Base):
     jumlah = Column(Float)
     satuan = Column(String)
     sumber_pasokan = Column(String)
+    id_unit_ternak = Column(Integer, ForeignKey('unit_ternak.id'))
+    id_jenis_produk = Column(Integer, ForeignKey('jenis_produk.id'))
+    
+class UnitTernak(Base):
+    
+    __tablename__ = 'unit_ternak'
+    
+    id = Column(Integer, primary_key=True, index=True)
+    nama_unit = Column(String)
+    provinsi_id = Column(Integer)
+    kota_id = Column(Integer)
+    kecamatan_id = Column(Integer)
+    kelurahan_id = Column(Integer)
+    
