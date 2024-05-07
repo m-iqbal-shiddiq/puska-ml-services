@@ -8,5 +8,5 @@ from app.routers import susu, ternak
 
 app = FastAPI(redirect_slashes=False)
 
-app.include_router(susu.router, prefix='/susu', tags=['susu'])
-app.include_router(ternak.router, prefix='/ternak', tags=['ternak'])
+app.include_router(susu.router, tags=['susu'])
+app.include_router(ternak.router, tags=['ternak'])

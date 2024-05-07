@@ -6,58 +6,113 @@ from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
 
-class DistribusiTernak(Base):
+class DimWaktu(Base):
     
-    __tablename__ = 'distribusi_ternak'
+    __tablename__ = 'dim_waktu'
     
-    id = Column(Integer, primary_key=True, index=True)
-    tgl_distribusi = Column(Date)
-    jumlah = Column(Float)
-    satuan = Column(String)
-    harga_berlaku = Column(Float)
+    id = Column(Integer, primary_key=True)
+    tanggal = Column(Date)
+    tahun = Column(Integer)
+    bulan = Column(Integer)
+    hari = Column(Integer)
+    
+    
+class DimLokasi(Base):
 
-class ProduksiTernak(Base):
+    __tablename__ = 'dim_lokasi'
     
-    __tablename__ = 'produksi_ternak'
+    id = Column(Integer, primary_key=True)
+    provinsi = Column(String)
+    kabupaten_kota = Column(String)
+    kecamatan = Column(String)
+    longitude = Column(Float)
+    latitude = Column(Float)
+
+
+class FactDistribusi(Base):
     
-    id = Column(Integer, primary_key=True, index=True)
-    tgl_produksi = Column(Date)
-    jumlah = Column(Float)
-    satuan = Column(String)
-    sumber_pasokan = Column(String)
+    __tablename__ = 'fact_distribusi'
     
-class DistribusiSusu(Base):
+    id_waktu = Column(Integer, primary_key=True)
+    id_lokasi = Column(Integer, primary_key=True)
+    id_unit_peternak = Column(Integer, primary_key=True)
+    id_mitra_bisnis = Column(Integer, primary_key=True)
+    id_jenis_produk = Column(Integer, primary_key=True)
+    jumlah_distribusi = Column(Float)
+    harga_minimum = Column(Float)
+    harga_maximum = Column(Float)
+    harga_rata_rata = Column(Float)
+    jumlah_penjualan = Column(Float)
+    created_dt = Column(DateTime)
+    modified_dt = Column(DateTime)
     
-    __tablename__ = 'distribusi_susu'
     
-    id = Column(Integer, primary_key=True, index=True)
-    tgl_distribusi = Column(Date)
-    jumlah = Column(Float)
-    satuan = Column(String)
-    harga_berlaku = Column(Float)
-    id_unit_ternak = Column(Integer, ForeignKey('unit_ternak.id'))
-    id_jenis_produk = Column(Integer, ForeignKey('jenis_produk.id'))
+class FactProduksi(Base):
     
-class ProduksiSusu(Base):
+    __tablename__ = 'fact_produksi'
     
-    __tablename__ = 'produksi_susu'
+    id_waktu = Column(Integer, primary_key=True)
+    id_lokasi = Column(Integer, primary_key=True)
+    id_unit_peternak = Column(Integer, primary_key=True)
+    id_jenis_produk = Column(Integer, primary_key=True)
+    id_sumber_pasokan = Column(Integer, primary_key=True)
+    jumlah_produksi = Column(Float)
+    created_dt = Column(DateTime)
+    modified_dt = Column(DateTime)
     
-    id = Column(Integer, primary_key=True, index=True)
-    tgl_produksi = Column(Date)
-    jumlah = Column(Float)
-    satuan = Column(String)
-    sumber_pasokan = Column(String)
-    id_unit_ternak = Column(Integer, ForeignKey('unit_ternak.id'))
-    id_jenis_produk = Column(Integer, ForeignKey('jenis_produk.id'))
+
+# class DistribusiTernak(Base):
     
-class UnitTernak(Base):
+#     __tablename__ = 'distribusi_ternak'
     
-    __tablename__ = 'unit_ternak'
+#     id = Column(Integer, primary_key=True, index=True)
+#     tgl_distribusi = Column(Date)
+#     jumlah = Column(Float)
+#     satuan = Column(String)
+#     harga_berlaku = Column(Float)
+
+# class ProduksiTernak(Base):
     
-    id = Column(Integer, primary_key=True, index=True)
-    nama_unit = Column(String)
-    provinsi_id = Column(Integer)
-    kota_id = Column(Integer)
-    kecamatan_id = Column(Integer)
-    kelurahan_id = Column(Integer)
+#     __tablename__ = 'produksi_ternak'
+    
+#     id = Column(Integer, primary_key=True, index=True)
+#     tgl_produksi = Column(Date)
+#     jumlah = Column(Float)
+#     satuan = Column(String)
+#     sumber_pasokan = Column(String)
+    
+# class DistribusiSusu(Base):
+    
+#     __tablename__ = 'distribusi_susu'
+    
+#     id = Column(Integer, primary_key=True, index=True)
+#     tgl_distribusi = Column(Date)
+#     jumlah = Column(Float)
+#     satuan = Column(String)
+#     harga_berlaku = Column(Float)
+#     id_unit_ternak = Column(Integer, ForeignKey('unit_ternak.id'))
+#     id_jenis_produk = Column(Integer, ForeignKey('jenis_produk.id'))
+    
+# class ProduksiSusu(Base):
+    
+#     __tablename__ = 'produksi_susu'
+    
+#     id = Column(Integer, primary_key=True, index=True)
+#     tgl_produksi = Column(Date)
+#     jumlah = Column(Float)
+#     satuan = Column(String)
+#     sumber_pasokan = Column(String)
+#     id_unit_ternak = Column(Integer, ForeignKey('unit_ternak.id'))
+#     id_jenis_produk = Column(Integer, ForeignKey('jenis_produk.id'))
+    
+# class UnitTernak(Base):
+    
+#     __tablename__ = 'unit_ternak'
+    
+#     id = Column(Integer, primary_key=True, index=True)
+#     nama_unit = Column(String)
+#     provinsi_id = Column(Integer)
+#     kota_id = Column(Integer)
+#     kecamatan_id = Column(Integer)
+#     kelurahan_id = Column(Integer)
     

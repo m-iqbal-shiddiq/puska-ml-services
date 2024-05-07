@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sshtunnel import SSHTunnelForwarder
 
 
-is_local = True
+is_local = False
 
 CWD_PATH = os.path.join(os.path.dirname(__file__), os.pardir)
 ENV_PATH = os.path.join(CWD_PATH, '.env')
