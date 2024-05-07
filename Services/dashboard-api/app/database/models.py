@@ -27,6 +27,16 @@ class DimLokasi(Base):
     kecamatan = Column(String)
     longitude = Column(Float)
     latitude = Column(Float)
+    
+
+class DimMitraBisnis(Base):
+    
+    __tablename__ = 'dim_mitra_bisnis'
+    
+    id = Column(Integer, primary_key=True)
+    id_unit_peternak = Column(Integer)
+    nama_mitra_bisnis = Column(String)
+    kategori_mitra_bisnis = Column(String)
 
 
 class FactDistribusi(Base):
