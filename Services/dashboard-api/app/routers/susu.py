@@ -15,7 +15,7 @@ from app.database.models import DimLokasi, DimWaktu, DimMitraBisnis, FactDistrib
 
 router = APIRouter(redirect_slashes=False)
 
-def get_db():   
+def get_db():
     db = SessionLocal()
     try:
         yield db
@@ -328,7 +328,8 @@ async def get_susu_data(db: Session = Depends(get_db)):
                 
             
             # Get Prediction Data
-            responses[year][lokasi_str]['prediksi'] = {}
+            responses[year][lokasi_str]['prediksi_produksi_susu_segar'] = []
+            responses[year][lokasi_str]['prediksi_produksi'] = None
             # Belum ada tabel prediksi
             
             
@@ -410,7 +411,7 @@ async def get_susu_data(db: Session = Depends(get_db)):
             }
             
             
-            responses[year][lokasi_str]['pro_dis'] = {}
+            responses[year][lokasi_str]['prod_dis'] = {}
             
             # Distribusi
             dis_susu_segar_list = (
@@ -426,8 +427,8 @@ async def get_susu_data(db: Session = Depends(get_db)):
             for dis_susu_segar in dis_susu_segar_list:
                 dis_susu_segar_result[id_waktu_dict[dis_susu_segar[0]]] = dis_susu_segar[1]
             
-            responses[year][lokasi_str]['pro_dis']['distribusi'] = all_dates.copy()
-            responses[year][lokasi_str]['pro_dis']['distribusi'].update(dis_susu_segar_result)
+            responses[year][lokasi_str]['prod_dis']['distribusi'] = all_dates.copy()
+            responses[year][lokasi_str]['prod_dis']['distribusi'].update(dis_susu_segar_result)
             
             # Produksi
             pro_susu_segar_list = (
@@ -443,8 +444,8 @@ async def get_susu_data(db: Session = Depends(get_db)):
             for pro_susu_segar in pro_susu_segar_list:
                 pro_susu_segar_result[id_waktu_dict[pro_susu_segar[0]]] = pro_susu_segar[1]
             
-            responses[year][lokasi_str]['pro_dis']['produksi'] = all_dates.copy()
-            responses[year][lokasi_str]['pro_dis']['produksi'].update(pro_susu_segar_result)
+            responses[year][lokasi_str]['prod_dis']['produksi'] = all_dates.copy()
+            responses[year][lokasi_str]['prod_dis']['produksi'].update(pro_susu_segar_result)
 
             
             # Permintaan susu segar by mitra bisnis
@@ -559,7 +560,7 @@ async def get_susu_data(db: Session = Depends(get_db)):
             else:
                 responses[year][lokasi_str]['harga_susu']['maximum'] = 0
                     
-            harga_rataan = float(
+            harga_rataan = (
                 db.query(func.avg(FactDistribusi.harga_rata_rata))
                 .where(and_(FactDistribusi.id_lokasi == id_lokasi,
                             FactDistribusi.id_jenis_produk == 3,
@@ -575,7 +576,7 @@ async def get_susu_data(db: Session = Depends(get_db)):
             )
             
             if harga_rataan is not None:
-                responses[year][lokasi_str]['harga_susu']['rata_rata'] = harga_rataan
+                responses[year][lokasi_str]['harga_susu']['rata_rata'] = float(harga_rataan)
             else:
                 responses[year][lokasi_str]['harga_susu']['rata_rata'] = 0
             
