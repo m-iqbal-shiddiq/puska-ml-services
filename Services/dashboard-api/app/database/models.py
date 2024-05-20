@@ -26,7 +26,7 @@ class DimLokasi(Base):
     kabupaten_kota = Column(String)
     kecamatan = Column(String)
     longitude = Column(Float)
-    latitude = Column(Float)
+    langitude = Column(Float)
     
 
 class DimMitraBisnis(Base):
@@ -70,59 +70,21 @@ class FactProduksi(Base):
     created_dt = Column(DateTime)
     modified_dt = Column(DateTime)
     
-
-# class DistribusiTernak(Base):
+class FactPopulasi(Base):
     
-#     __tablename__ = 'distribusi_ternak'
+    __tablename__ = 'fact_populasi'
     
-#     id = Column(Integer, primary_key=True, index=True)
-#     tgl_distribusi = Column(Date)
-#     jumlah = Column(Float)
-#     satuan = Column(String)
-#     harga_berlaku = Column(Float)
-
-# class ProduksiTernak(Base):
-    
-#     __tablename__ = 'produksi_ternak'
-    
-#     id = Column(Integer, primary_key=True, index=True)
-#     tgl_produksi = Column(Date)
-#     jumlah = Column(Float)
-#     satuan = Column(String)
-#     sumber_pasokan = Column(String)
-    
-# class DistribusiSusu(Base):
-    
-#     __tablename__ = 'distribusi_susu'
-    
-#     id = Column(Integer, primary_key=True, index=True)
-#     tgl_distribusi = Column(Date)
-#     jumlah = Column(Float)
-#     satuan = Column(String)
-#     harga_berlaku = Column(Float)
-#     id_unit_ternak = Column(Integer, ForeignKey('unit_ternak.id'))
-#     id_jenis_produk = Column(Integer, ForeignKey('jenis_produk.id'))
-    
-# class ProduksiSusu(Base):
-    
-#     __tablename__ = 'produksi_susu'
-    
-#     id = Column(Integer, primary_key=True, index=True)
-#     tgl_produksi = Column(Date)
-#     jumlah = Column(Float)
-#     satuan = Column(String)
-#     sumber_pasokan = Column(String)
-#     id_unit_ternak = Column(Integer, ForeignKey('unit_ternak.id'))
-#     id_jenis_produk = Column(Integer, ForeignKey('jenis_produk.id'))
-    
-# class UnitTernak(Base):
-    
-#     __tablename__ = 'unit_ternak'
-    
-#     id = Column(Integer, primary_key=True, index=True)
-#     nama_unit = Column(String)
-#     provinsi_id = Column(Integer)
-#     kota_id = Column(Integer)
-#     kecamatan_id = Column(Integer)
-#     kelurahan_id = Column(Integer)
+    id_waktu = Column(Integer, primary_key=True)
+    id_lokasi = Column(Integer, primary_key=True)
+    id_peternakan = Column(Integer, primary_key=True)
+    jenis_kelamin = Column(String)
+    tipe_ternak = Column(String)
+    tipe_usia = Column(String)
+    jumlah_lahir = Column(Integer)
+    jumlah_mati = Column(Integer)
+    jumlah_masuk = Column(Integer)
+    jumlah_keluar = Column(Integer)
+    jumlah = Column(Integer)
+    created_dt = Column(DateTime)
+    modified_dt = Column(DateTime)
     
