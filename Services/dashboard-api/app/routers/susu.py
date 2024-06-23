@@ -506,7 +506,10 @@ async def get_susu_data(db: Session = Depends(get_db),
     if kabupaten_kota:
         query = query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
     
-    harga_rataan = round(query.scalar(), 2)
+    try:
+        harga_rataan = round(query.scalar(), 2)
+    except:
+        harga_rataan = None
     
     if harga_rataan is None:
         responses['data']['harga_susu']['rata_rata'] = 0

@@ -98,17 +98,20 @@ async def create_prediction(
     """
         Example Input:
         
-        {
-            "date": "2023-04-01",
-            "time_type": "daily",
-            "province": "JAWA TIMUR",
-            "regency": "KAB. PROBOLINGGO",
-            "unit": "prof farm"
+        { \n
+            "time_type": "daily", \n
+            "id_waktu": "2023-04-01", \n
+            "id_lokasi": 44156, \n
+            "id_unit_peternakan": 44156, \n
         }
         
         ID Lokasi:
-        - Nyx Farm: 16
-        - Prof Farm: 21
+        - JAWA TIMUR : 44156
+        - JAWA TIMUR - PROBOLINGGO : 47346
+        
+        ID Unit Ternak:
+        - NYX Farm: 18
+        - Prof Farm: 23
         
         Last Date:
         - NYX Farm: 28 Februari 2023
@@ -117,127 +120,44 @@ async def create_prediction(
     """
     
     start_time = time.time()
-    
     predict_input = PredictionObj(**predict_request.model_dump())
     
-    # get id lokasi 
-    if (predict_input.regency is None) or (predict_input.regency == ''):
-        id_lokasi = (
-            db.query(DimLokasi.id)
-            .where(and_(DimLokasi.provinsi.like(f"%{predict_input.province}%"),
-                        DimLokasi.kabupaten_kota == None))
-            .first()
-        )
-
-        # handle id_lokasi not found
-        if id_lokasi is not None:
-            id_lokasi = id_lokasi[0]
-        else:
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={
-                    'status': "error",
-                    'type': "DATA_NOT_FOUND",
-                    'message': "id_lokasi not found"
-                }
-            )
-            
-    
-    else:
-        id_lokasi = (
-            db.query(DimLokasi.id)
-            .where(and_(DimLokasi.provinsi.like(f"%{predict_input.province.upper()}%"),
-                        DimLokasi.kabupaten_kota.like(f"%{predict_input.regency.upper()}%")))
-            .first()
-        )
-
-        # handle id_lokasi not found
-        if id_lokasi is not None:
-            id_lokasi = id_lokasi[0]
-            # id_lokasi = 240
-        else:
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={
-                    'status': "error",
-                    'type': "DATA_NOT_FOUND",
-                    'message': "id_lokasi not found"
-                }
-            )
-            
-    # get id unit ternak
-    if predict_request.unit is not None:
-        id_unit_ternak = (
-            db.query(DimUnitTernak.id)
-            .where(DimUnitTernak.nama_unit.like(f"%{predict_input.unit}%"))
-            .first()
-        )
-        
-        if id_unit_ternak is not None:
-            id_unit_ternak = id_unit_ternak[0]
-        else:
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={
-                    'status': "error",
-                    'type': "DATA_NOT_FOUND",
-                    'message': "id_unit_ternak not found"
-                }
-            )
-    
-    else:
-        id_unit_ternak = None
-    
-    
     if predict_input.time_type == 'daily':
-        
-        date_list = create_date_range(start_date=predict_input.start_date, 
-                                      end_date=predict_input.end_date)
-        
-        id_tanggal_list = []
-        for dt in date_list:
-            id_tanggal = (
-                db.query(DimWaktu.id)
-                .where(and_(DimWaktu.tahun == dt[0],
-                            DimWaktu.bulan == dt[1],
-                            DimWaktu.tanggal == dt[2]))
-                .first()
-            )
-            
-            # handle date not found in dwh
-            if id_tanggal is None:
-                return JSONResponse(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    content={
-                        'status': "error",
-                        'type': "DATA_NOT_FOUND",
-                        'message': f"date ({dt[0]}-{dt[1]}-{dt[2]}) not found in database"
-                    }
-                )
-            
-            id_tanggal_list.append(id_tanggal[0])
-        
         # get data input for prediction
         input_data_list = []
-        for id_tanggal in id_tanggal_list:
-            
-            data = (
-                db.query(FactProduksi.jumlah_produksi)
-                .where(and_(FactProduksi.id_waktu == id_tanggal,
-                            FactProduksi.id_lokasi == id_lokasi,
-                            FactProduksi.id_unit_ternak == id_unit_ternak))
-                .all()
-            )
+        for id_waktu in predict_input.id_waktu_list:
+            if predict_input.id_unit_peternakan is None:
+                data = (
+                    db.query(FactProduksi.jumlah_produksi)
+                    .where(and_(FactProduksi.id_waktu == id_waktu,
+                                FactProduksi.id_lokasi == predict_input.id_lokasi))
+                    .all()
+                )
+            else:
+                data = (
+                    db.query(FactProduksi.jumlah_produksi)
+                    .where(and_(FactProduksi.id_waktu == id_waktu,
+                                FactProduksi.id_lokasi == predict_input.id_lokasi,
+                                FactProduksi.id_unit_ternak == predict_input.id_unit_peternakan))
+                    .all()
+                )
             
             if len(data) == 0:
-                data_pred = (
-                    db.query(PredSusu.prediction)
-                    .where(and_(PredSusu.id_waktu == id_tanggal,
-                                PredSusu.id_lokasi == id_lokasi,
-                                PredSusu.id_unit_ternak == id_unit_ternak))
-                    .first()
+                if predict_input.id_unit_peternakan is None:
+                    data_pred = (
+                        db.query(PredSusu.prediction)
+                        .where(and_(PredSusu.id_waktu == id_waktu,
+                                    PredSusu.id_lokasi == predict_input.id_lokasi))
+                        .first()
                     )
-                
+                else:
+                    data_pred = (
+                        db.query(PredSusu.prediction)
+                        .where(and_(PredSusu.id_waktu == id_waktu,
+                                    PredSusu.id_lokasi == predict_input.id_lokasi,
+                                    PredSusu.id_unit_ternak == predict_input.id_unit_peternakan))
+                        .first()
+                    )
                 if data_pred is None:
                     return JSONResponse(
                         status_code=status.HTTP_404_NOT_FOUND,
@@ -248,12 +168,12 @@ async def create_prediction(
                         }
                     )
                 else:
-                    input_data_list.append([id_tanggal, float(data_pred[0])])
+                    input_data_list.append([id_waktu, float(data_pred[0])])
             else:
                 sum_data = 0
                 for dt in data:
                     sum_data += dt[0]
-                input_data_list.append([id_tanggal, sum_data])
+                input_data_list.append([id_waktu, sum_data])
         
         # format input data 
         input_data_df = pd.DataFrame(input_data_list, columns=['id_tanggal', 'data'])
@@ -288,52 +208,50 @@ async def create_prediction(
         pred_data = scaler.inverse_transform(pred_data)[0][0].item()
         pred_data = round(pred_data, 2)
         
-        act_data = (
-            db.query(FactProduksi.jumlah_produksi)
-            .where(and_(FactProduksi.id_waktu == id_tanggal,
-                        FactProduksi.id_lokasi == id_lokasi,
-                        FactProduksi.id_unit_ternak == id_unit_ternak))
-            .first()
-        )[0]
-        
-        mape = round(abs((act_data - pred_data) / act_data) * 100, 2)
-        
-        # Check prediction result in database
-        id_waktu = (
-            db.query(DimWaktu.id)
-            .where(and_(DimWaktu.tahun == predict_input.date.year,
-                        DimWaktu.bulan == predict_input.date.month,
-                        DimWaktu.tanggal == predict_input.date.day))
-            .first()
-        )
-        
-        if id_waktu is not None:
-            id_waktu = id_waktu[0]
+        if predict_input.id_unit_peternakan is None:
+            act_data = (
+                db.query(FactProduksi.jumlah_produksi)
+                .where(and_(FactProduksi.id_waktu == predict_input.id_waktu,
+                            FactProduksi.id_lokasi == predict_input.id_lokasi))
+                .first()
+            )
         else:
-            return JSONResponse(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                content={
-                    'status': "error",
-                    'type': "DATA_NOT_FOUND",
-                    'message': "id_waktu not found in dim_waktu table."
-                }
+            act_data = (
+                db.query(FactProduksi.jumlah_produksi)
+                .where(and_(FactProduksi.id_waktu == predict_input.id_waktu,
+                            FactProduksi.id_lokasi == predict_input.id_lokasi,
+                            FactProduksi.id_unit_ternak == predict_input.id_unit_peternakan))
+                .first()
             )
             
-        pred_in_database = (
-            db.query(PredSusu)
-            .where(and_(PredSusu.id_waktu == id_waktu,
-                        PredSusu.id_lokasi == id_lokasi,
-                        PredSusu.id_unit_ternak == id_unit_ternak))
-            .first()
-        )
+        if act_data is None:
+            mape = None
+        else:
+            act_data = act_data[0]
+            mape = round(abs((act_data - pred_data) / act_data) * 100, 2)
+        
+        if predict_input.id_unit_peternakan is None:
+            pred_in_database = (
+                db.query(PredSusu)
+                .where(and_(PredSusu.id_waktu == id_waktu,
+                            PredSusu.id_lokasi == predict_input.id_lokasi))
+                .first()
+            )
+        else:
+            pred_in_database = (
+                db.query(PredSusu)
+                .where(and_(PredSusu.id_waktu == id_waktu,
+                            PredSusu.id_lokasi == predict_input.id_lokasi,
+                            PredSusu.id_unit_ternak == predict_input.id_unit_peternakan))
+                .first()
+            )
         
         if pred_in_database is None:
-            
             latency = round(time.time() - start_time, 4)
             new_prediction = PredSusu(
-                id_waktu=id_waktu,
-                id_lokasi=id_lokasi,
-                id_unit_ternak=id_unit_ternak,
+                id_waktu=predict_input.id_waktu,
+                id_lokasi=predict_input.id_lokasi,
+                id_unit_ternak=predict_input.id_unit_peternakan,
                 prediction=pred_data,
                 mape=mape,
                 latency=latency
@@ -351,7 +269,6 @@ async def create_prediction(
                 }
             )
             
-            
         else:
             pred_in_database = float(pred_in_database.prediction)
             
@@ -360,9 +277,9 @@ async def create_prediction(
                 
                 update_data = (
                     db.query(PredSusu)
-                    .where(and_(PredSusu.id_waktu == id_waktu,
-                                PredSusu.id_lokasi == id_lokasi,
-                                PredSusu.id_unit_ternak == id_unit_ternak))
+                    .where(and_(PredSusu.id_waktu == predict_input.id_waktu,
+                                PredSusu.id_lokasi == predict_input.id_lokasi,
+                                PredSusu.id_unit_ternak == predict_input.id_unit_peternakan))
                     .first()
                 )
                 
@@ -392,5 +309,4 @@ async def create_prediction(
     else:
         # This is for weekly prediction
         pass
-    
         return

@@ -4,29 +4,18 @@ from pydantic import BaseModel, Field, validator
 
 
 class PredictionRequest(BaseModel):
-    date: str = Field(..., 
-                      description="Date for prediction",
-                      examples=["2023-12-06"])
     time_type: str = Field(...,
                            description="Time type for prediction",
                            examples=["daily", "weekly"])
-    province: str = Field(...,
-                          description="Province for prediction",
-                          examples=["Jawa Timur"])
-    regency: str = Field(None,
-                         description="Regency for prediction",
-                         examples=["Probolinggo"])
-    unit: str = Field(None,
-                      description="Unit for prediction",
-                      examples=["NYX Farm"])
-    
-    @validator('date')
-    def validate_date(cls, value):
-        try:
-            datetime.strptime(value, '%Y-%m-%d')
-        except:
-            raise ValueError('date must be in YYYY-MM-DD format')
-        return value
+    id_waktu: int = Field(..., 
+                          description="Date for prediction",
+                          examples=[453])
+    id_lokasi: int = Field(...,
+                           description="Location ID for prediction",
+                           examples=[47346])
+    id_unit_peternakan: int = Field(None,
+                                    description="Unit Peternakan ID for prediction",
+                                    examples=[23])
     
     @validator('time_type')
     def validate_time_type(cls, value):
@@ -46,32 +35,38 @@ class PredictionFailureResponse(BaseModel):
     
 class PredictionObj():
     
-    def __init__(self, date, time_type, province, regency, unit):
+    def __init__(self, time_type, id_waktu, id_lokasi, id_unit_peternakan):
         
-        self.date = datetime.strptime(date, '%Y-%m-%d')
         self.time_type = time_type
+        self.id_waktu = id_waktu
+        self.id_lokasi = id_lokasi
+        self.id_unit_peternakan = id_unit_peternakan
         
-        self.province = province
-        folder_name_list = [self.province]
+        key_name_list = [str(self.id_lokasi)]
         
-        if regency is not None:
-            self.regency = regency
-            folder_name_list.append(self.regency)
-        else:
-            self.regency = None
+        if self.id_unit_peternakan is not None:
+            key_name_list.append(str(self.id_unit_peternakan))
         
-        if unit is not None:
-            self.unit = unit
-            folder_name_list.append(self.unit)
-        else:
-            self.unit = None
+        # if regency is not None:
+        #     self.regency = regency
+        #     folder_name_list.append(self.regency)
+        # else:
+        #     self.regency = None
         
-        self.model_name = f"{'_'.join(folder_name_list)}"
-        self.scaler_name = f"{'_'.join(folder_name_list)}"
+        # if unit is not None:
+        #     self.unit = unit
+        #     folder_name_list.append(self.unit)
+        # else:
+        #     self.unit = None
+        
+        self.model_name = f"{'_'.join(key_name_list)}"
+        self.scaler_name = f"{'_'.join(key_name_list)}"
         
         if self.time_type == 'daily':
-            self.start_date = self.date - timedelta(int(os.getenv('LOOK_BACK')))     
-            self.end_date = self.date - timedelta(1)
+            start_date = self.id_waktu - int(os.getenv('LOOK_BACK')) 
+            end_date = self.id_waktu - 1
+            
+            self.id_waktu_list = list(range(start_date, end_date + 1))
        
         else:
             self.start_week = None

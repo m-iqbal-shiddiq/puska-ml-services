@@ -345,7 +345,7 @@ async def get_ternak_data(db: Session = Depends(get_db),
                     query = (
                         db.query(DimLokasi.longitude, DimLokasi.langitude)
                         .where(and_(DimLokasi.provinsi == provinsi,
-                                    DimLokasi._kota_kota == None,
+                                    DimLokasi.kabupaten_kota == None,
                                     DimLokasi.kecamatan == None))
                     )
                     
