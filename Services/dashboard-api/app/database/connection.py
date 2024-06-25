@@ -1,51 +1,40 @@
-import os
+from typing import Optional
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sshtunnel import SSHTunnelForwarder
 
+class Config(BaseSettings):
+    DB_HOST: str = Field(alias="DB_HOST")
+    DB_PORT: int = Field(alias="DB_PORT")
+    DB_NAME: str = Field(alias="DB_NAME")
+    DB_USER: str = Field(alias="DB_USER")
+    DB_PASS: SecretStr = Field(alias="DB_PASS")
+    SSH_TUNNEL_FLAG: int = Field(alias="SSH_TUNNEL_FLAG", default=0)
+    SSH_HOST: Optional[str] = Field(alias="SSH_HOST", default=None)
+    SSH_USER: Optional[str] = Field(alias="SSH_USER", default=None)
+    SSH_PORT: Optional[int] = Field(alias="SSH_PORT", default=None)
+    SSH_PASS: Optional[SecretStr] = Field(alias="SSH_PASS", default=None)
+    SSH_CLIENT_PORT: Optional[int] = Field(alias="SSH_CLIENT_PORT", default=None)
 
-is_local = False
 
-CWD_PATH = os.path.join(os.path.dirname(__file__), os.pardir)
-ENV_PATH = os.path.join(CWD_PATH, '.env')
+def session_factory(C: Config):
+    if (C.SSH_TUNNEL_FLAG):
+        tunnel = SSHTunnelForwarder(
+            (C.SSH_HOST, C.SSH_PORT),
+            ssh_username = C.SSH_USER,
+            ssh_password = C.SSH_PASS.get_secret_value(),
+            remote_bind_address = (C.DB_HOST, C.DB_PORT),
+            local_bind_address = ('127.0.0.1', C.SSH_CLIENT_PORT)
+        )
+        tunnel.start()
 
-load_dotenv(ENV_PATH)
+    db_url = f"postgresql://{C.DB_USER}:{C.DB_PASS.get_secret_value()}@{C.DB_HOST}:{C.DB_PORT}/{C.DB_NAME}"
+    engine = create_engine(db_url)
 
-if is_local:
-    db_host = os.getenv('DB_HOST_LOCAL')
-    db_port = int(os.getenv('DB_PORT_LOCAL'))
-    db_name = os.getenv('DB_NAME_LOCAL')
-    db_user = os.getenv('DB_USER_LOCAL')
-    db_pass = os.getenv('DB_PASS_LOCAL')
-    
-    used_port = db_port
-else:
-    db_host = os.getenv('DB_HOST')
-    db_port = int(os.getenv('DB_PORT'))
-    db_name = os.getenv('DB_NAME')
-    db_user = os.getenv('DB_USER')
-    db_pass = os.getenv('DB_PASS')
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    return SessionLocal
 
-    ssh_host = os.getenv('SSH_HOST')
-    ssh_user = os.getenv('SSH_USERNAME')
-    ssh_port = int(os.getenv('SSH_PORT'))
-    ssh_pass = os.getenv('SSH_PASSWORD')
-
-    tunnel = SSHTunnelForwarder(
-        (ssh_host, ssh_port),
-        ssh_username=ssh_user,
-        ssh_password=ssh_pass,
-        remote_bind_address=(db_host, db_port),
-        local_bind_address=('localhost', 5433)
-    )
-
-    tunnel.start()
-
-    used_port = tunnel.local_bind_port
-
-db_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{used_port}/{db_name}"
-engine = create_engine(db_url)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = session_factory(C=Config())
