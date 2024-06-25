@@ -3,20 +3,16 @@ import time
 import numpy as np
 import pandas as pd
 
-
-from datetime import date, datetime, timedelta
-from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field, validator
-from typing import Optional
 from typing_extensions import Annotated
 
 import app.database.models as models
 
+from app.config import Config
 from app.database.connection import engine, SessionLocal
 from app.database.models import *
 from app.helpers.date_range import *
@@ -27,12 +23,13 @@ from app.validations.prediction import *
 
 
 ENV_PATH = '.env'
+CONFIG = Config()
 
-load_dotenv(ENV_PATH)
+# load_dotenv(ENV_PATH)
 
 # load model and scaler
-model_dict = load_model()
-scaler_dict = load_scaler()
+model_dict = load_model(CONFIG.MODEL_PATH)
+scaler_dict = load_scaler(CONFIG.SCALER_PATH)
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -138,7 +135,7 @@ async def create_prediction(
                     db.query(FactProduksi.jumlah_produksi)
                     .where(and_(FactProduksi.id_waktu == id_waktu,
                                 FactProduksi.id_lokasi == predict_input.id_lokasi,
-                                FactProduksi.id_unit_ternak == predict_input.id_unit_peternakan))
+                                FactProduksi.id_unit_peternakan == predict_input.id_unit_peternakan))
                     .all()
                 )
             
@@ -155,7 +152,7 @@ async def create_prediction(
                         db.query(PredSusu.prediction)
                         .where(and_(PredSusu.id_waktu == id_waktu,
                                     PredSusu.id_lokasi == predict_input.id_lokasi,
-                                    PredSusu.id_unit_ternak == predict_input.id_unit_peternakan))
+                                    PredSusu.id_unit_peternakan == predict_input.id_unit_peternakan))
                         .first()
                     )
                 if data_pred is None:
@@ -201,7 +198,7 @@ async def create_prediction(
         input_data_df['dt'] = scaler.transform(input_data_df['data'].values.reshape(-1, 1))
         input_data_model = input_data_df['data'].values.tolist()
         
-        input_data_model = np.array(input_data_model).reshape(1, int(os.getenv('LOOK_BACK')))
+        input_data_model = np.array(input_data_model).reshape(1, CONFIG.LOOK_BACK)
         input_data_model = np.reshape(input_data_model, (input_data_model.shape[0], 1, input_data_model.shape[1]))
         
         pred_data = model.predict(input_data_model)
@@ -220,7 +217,7 @@ async def create_prediction(
                 db.query(FactProduksi.jumlah_produksi)
                 .where(and_(FactProduksi.id_waktu == predict_input.id_waktu,
                             FactProduksi.id_lokasi == predict_input.id_lokasi,
-                            FactProduksi.id_unit_ternak == predict_input.id_unit_peternakan))
+                            FactProduksi.id_unit_peternakan == predict_input.id_unit_peternakan))
                 .first()
             )
             
@@ -242,7 +239,7 @@ async def create_prediction(
                 db.query(PredSusu)
                 .where(and_(PredSusu.id_waktu == id_waktu,
                             PredSusu.id_lokasi == predict_input.id_lokasi,
-                            PredSusu.id_unit_ternak == predict_input.id_unit_peternakan))
+                            PredSusu.id_unit_peternakan == predict_input.id_unit_peternakan))
                 .first()
             )
         
@@ -251,7 +248,7 @@ async def create_prediction(
             new_prediction = PredSusu(
                 id_waktu=predict_input.id_waktu,
                 id_lokasi=predict_input.id_lokasi,
-                id_unit_ternak=predict_input.id_unit_peternakan,
+                id_unit_peternakan=predict_input.id_unit_peternakan,
                 prediction=pred_data,
                 mape=mape,
                 latency=latency
@@ -279,7 +276,7 @@ async def create_prediction(
                     db.query(PredSusu)
                     .where(and_(PredSusu.id_waktu == predict_input.id_waktu,
                                 PredSusu.id_lokasi == predict_input.id_lokasi,
-                                PredSusu.id_unit_ternak == predict_input.id_unit_peternakan))
+                                PredSusu.id_unit_peternakan == predict_input.id_unit_peternakan))
                     .first()
                 )
                 

@@ -4,9 +4,9 @@ import tensorflow as tf
 
 CWD_PATH = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 
-def load_model():
+def load_model(model_path: str):
     
-    model_path = os.path.join(CWD_PATH, os.getenv('MODEL_PATH'))
+    model_path = os.path.join(CWD_PATH, model_path)
     
     model_dict = {}
     
