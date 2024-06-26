@@ -339,23 +339,24 @@ async def get_ternak_data(db: Session = Depends(get_db),
                         'sebaran_populasi': []
                     }
                     
-                if provinsi not in lonlat_dict:
-                    lonlat_dict[provinsi] = {}
+                # if provinsi not in lonlat_dict:
+                #     lonlat_dict[provinsi] = {}
                     
-                    query = (
-                        db.query(DimLokasi.longitude, DimLokasi.langitude)
-                        .where(and_(DimLokasi.provinsi == provinsi,
-                                    DimLokasi.kabupaten_kota == None,
-                                    DimLokasi.kecamatan == None))
-                    )
+                #     query = (
+                #         db.query(DimLokasi.longitude, DimLokasi.langitude)
+                #         .where(and_(DimLokasi.provinsi == provinsi,
+                #                     DimLokasi.kabupaten_kota == None,
+                #                     DimLokasi.kecamatan == None))
+                #     )
                     
-                    lonlat = query.one()
+                #     lonlat = query.one()
   
-                    lonlat_dict[provinsi]['longitude'] = lonlat[0]
-                    lonlat_dict[provinsi]['langitude'] = lonlat[1]
+                #     lonlat_dict[provinsi]['longitude'] = lonlat[0]
+                #     lonlat_dict[provinsi]['langitude'] = lonlat[1]
                     
                 results_dict[year]['sebaran_populasi'].append({
-                    'region': f"POINT ({lonlat_dict[provinsi]['longitude']} {lonlat_dict[provinsi]['langitude']})",
+                    # 'region': f"POINT ({lonlat_dict[provinsi]['longitude']} {lonlat_dict[provinsi]['langitude']})",
+                    'region': None, #TODO: Revision (#1)
                     'title': provinsi,
                     'populasi': int(total_populasi)
                 })
@@ -427,19 +428,20 @@ async def get_ternak_data(db: Session = Depends(get_db),
                 if kabupaten_kota not in lonlat_dict:
                     lonlat_dict[kabupaten_kota] = {}
                     
-                    query = (
-                        db.query(DimLokasi.longitude, DimLokasi.langitude)
-                        .where(and_(DimLokasi.kabupaten_kota == kabupaten_kota,
-                                    DimLokasi.kecamatan == None))
-                    )
+                    # query = (
+                    #     db.query(DimLokasi.longitude, DimLokasi.langitude)
+                    #     .where(and_(DimLokasi.kabupaten_kota == kabupaten_kota,
+                    #                 DimLokasi.kecamatan == None))
+                    # )
                     
-                    lonlat = query.one()
+                    # lonlat = query.one()
 
-                    lonlat_dict[kabupaten_kota]['longitude'] = lonlat[0]
-                    lonlat_dict[kabupaten_kota]['langitude'] = lonlat[1]
+                    # lonlat_dict[kabupaten_kota]['longitude'] = lonlat[0]
+                    # lonlat_dict[kabupaten_kota]['langitude'] = lonlat[1]
                     
                 results_dict[year]['sebaran_populasi'].append({
-                    'region': f"POINT ({lonlat_dict[kabupaten_kota]['longitude']} {lonlat_dict[kabupaten_kota]['langitude']})",
+                    # 'region': f"POINT ({lonlat_dict[kabupaten_kota]['longitude']} {lonlat_dict[kabupaten_kota]['langitude']})",
+                    'region': None, #TODO: Revision (#1)
                     'title': kabupaten_kota,
                     'populasi': int(total_populasi)
                 })
@@ -466,20 +468,21 @@ async def get_ternak_data(db: Session = Depends(get_db),
                 if provinsi not in lonlat_dict:
                     lonlat_dict[provinsi] = {}
                     
-                    query = (
-                        db.query(DimLokasi.longitude, DimLokasi.langitude)
-                        .where(and_(DimLokasi.provinsi == provinsi,
-                                    DimLokasi.kabupaten_kota == None,
-                                    DimLokasi.kecamatan == None))
-                    )
+                    # query = (
+                    #     db.query(DimLokasi.longitude, DimLokasi.langitude)
+                    #     .where(and_(DimLokasi.provinsi == provinsi,
+                    #                 DimLokasi.kabupaten_kota == None,
+                    #                 DimLokasi.kecamatan == None))x
+                    # )
                     
-                    lonlat = query.one()
+                    # lonlat = query.one()
 
-                    lonlat_dict[provinsi]['longitude'] = lonlat[0]
-                    lonlat_dict[provinsi]['langitude'] = lonlat[1]
+                    # lonlat_dict[provinsi]['longitude'] = lonlat[0]
+                    # lonlat_dict[provinsi]['langitude'] = lonlat[1]
                     
                 results_dict[year]['sebaran_populasi'].append({
-                    'region': f"POINT ({lonlat_dict[provinsi]['longitude']} {lonlat_dict[provinsi]['langitude']})",
+                    # 'region': f"POINT ({lonlat_dict[provinsi]['longitude']} {lonlat_dict[provinsi]['langitude']})", 
+                    'region': None, #TODO: Revision (#1)
                     'title': provinsi,
                     'populasi': int(total_populasi)
                 })  

@@ -72,5 +72,5 @@ class SusuKabupatenData(BaseModel):
 
 # Main Model
 class SusuMasterData(BaseModel):
-    year: int
-    data: SusuKabupatenData
+    year: Optional[int]
+    data: Optional[SusuKabupatenData]

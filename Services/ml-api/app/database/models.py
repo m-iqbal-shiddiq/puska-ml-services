@@ -62,7 +62,7 @@ class FactProduksi(Base):
     
     id_waktu = Column(BigInteger, primary_key=True)
     id_lokasi = Column(BigInteger, primary_key=True)
-    id_unit_ternak = Column(BigInteger, primary_key=True)
+    id_unit_peternakan = Column(BigInteger, primary_key=True)
     id_jenis_produk = Column(BigInteger, primary_key=True)
     id_sumber_pasokan = Column(BigInteger, primary_key=True )
     jumlah_produksi = Column(BigInteger)
@@ -83,7 +83,7 @@ class PredSusu(Base):
     id_lokasi = Column(BigInteger)
     # id_lokasi = Column(BigInteger, ForeignKey('dim_lokasi.id'))
     # lokasi = relationship('DimLokasi')
-    id_unit_ternak = Column(BigInteger, ForeignKey('dim_unit_ternak.id'))
+    id_unit_peternakan = Column(BigInteger, ForeignKey('dim_unit_ternak.id'))
     unit_ternak = relationship('DimUnitTernak')
     prediction = Column(Numeric(precision=10, scale=2))
     latency = Column(Numeric(precision=10, scale=2))

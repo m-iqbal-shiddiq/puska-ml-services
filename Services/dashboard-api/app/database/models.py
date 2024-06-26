@@ -25,8 +25,6 @@ class DimLokasi(Base):
     provinsi = Column(String)
     kabupaten_kota = Column(String)
     kecamatan = Column(String)
-    longitude = Column(Float)
-    langitude = Column(Float)
     
 
 class DimMitraBisnis(Base):

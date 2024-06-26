@@ -1,5 +1,3 @@
-import os
-from datetime import datetime, timedelta
 from pydantic import BaseModel, Field, validator
 
 
@@ -35,7 +33,14 @@ class PredictionFailureResponse(BaseModel):
     
 class PredictionObj():
     
-    def __init__(self, time_type, id_waktu, id_lokasi, id_unit_peternakan):
+    def __init__(
+        self,
+        time_type: str,
+        id_waktu: int,
+        id_lokasi: int,
+        id_unit_peternakan: int,
+        look_back: int =  2,
+    ):
         
         self.time_type = time_type
         self.id_waktu = id_waktu
@@ -63,7 +68,7 @@ class PredictionObj():
         self.scaler_name = f"{'_'.join(key_name_list)}"
         
         if self.time_type == 'daily':
-            start_date = self.id_waktu - int(os.getenv('LOOK_BACK')) 
+            start_date = self.id_waktu - look_back
             end_date = self.id_waktu - 1
             
             self.id_waktu_list = list(range(start_date, end_date + 1))

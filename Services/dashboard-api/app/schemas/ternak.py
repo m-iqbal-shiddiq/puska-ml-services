@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional
 from pydantic import BaseModel
 
 
@@ -35,7 +35,7 @@ class ProduksiDistribusiSusuSegar(BaseModel):
     distribusi: int
 
 class SebaranPopulasi(BaseModel):
-    region: str
+    region: Optional[str] #TODO: Revision (#1)
     title: str
     populasi: int
 
