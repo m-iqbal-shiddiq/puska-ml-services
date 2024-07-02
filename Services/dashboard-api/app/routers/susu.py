@@ -390,11 +390,11 @@ async def get_susu_data(db: Session = Depends(get_db)):
                 responses[year][lokasi_str]['persentase_distribusi']['yogurt'] = 0
                 
             # Get produksi and distribusi in location 7 days
-            start_date = datetime.date.today() - datetime.timedelta(days=7)
-            end_date = datetime.date.today()
+            start_date = datetime.today() - timedelta(days=7)
+            end_date = datetime.today()
             
             all_dates = {
-                (start_date + datetime.timedelta(days=x)).strftime("%Y-%m-%d"): 0
+                (start_date + timedelta(days=x)).strftime("%Y-%m-%d"): 0
                 for x in range((end_date - start_date).days + 1)
             }
             
