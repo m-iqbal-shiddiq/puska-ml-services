@@ -26,6 +26,16 @@ class DimLokasi(Base):
     kabupaten_kota = Column(String)
     kecamatan = Column(String)
     
+class DimUnitPeternakan(Base):
+    
+    __tablename__ = 'dim_unit_peternakan'
+    
+    id = Column(Integer, primary_key=True)
+    id_lokasi = Column(Integer)
+    nama_unit = Column(String)
+    alamat = Column(String)
+    longitude = Column(Float)
+    latitude = Column(Float)
 
 class DimMitraBisnis(Base):
     

@@ -9,7 +9,7 @@ from sqlalchemy import func, and_
 from sqlalchemy.orm import Session
 
 from app.database.connection import SessionLocal
-from app.database.models import DimLokasi, DimWaktu, DimMitraBisnis, FactDistribusi, FactProduksi
+from app.database.models import DimLokasi, DimWaktu, DimMitraBisnis, FactDistribusi, FactProduksi, DimUnitPeternakan
 from app.schemas.susu import SusuMasterData
 
 
@@ -24,7 +24,10 @@ def get_db():
         
 
 @router.get(path='/susu')
-async def get_susu_data(db: Session = Depends(get_db)):
+async def get_susu_data(db: Session = Depends(get_db),
+                        tahun: int | None = None,
+                        provinsi: str | None = None,
+                        unit_peternakan: str | None = None):
     
     responses = {}
     
@@ -53,6 +56,9 @@ async def get_susu_data(db: Session = Depends(get_db)):
         .all()
     )
     year_list = [year[0] for year in year_list]
+    
+    if tahun is not None:
+        year_list = [tahun]
     
     for year in year_list:
         responses[year] = {}
@@ -90,6 +96,23 @@ async def get_susu_data(db: Session = Depends(get_db)):
             if item[0] not in pro_dis_id_lokasi_list:
                 pro_dis_id_lokasi_list.append(item[0])
                 
+        if provinsi is not None:
+            pro_dis_id_lokasi_list = [
+                item[0]
+                for item in (
+                    db.query(DimLokasi.id)
+                    .where(DimLokasi.provinsi == provinsi)
+                    .all()
+                )
+            ]
+
+        if unit_peternakan is not None:
+            id_unit_peternakan = (
+                db.query(DimUnitPeternakan.id)
+                .where(DimUnitPeternakan.nama_unit == unit_peternakan)
+                .first()
+            )
+                
         # Search data in every location
         for id_lokasi in pro_dis_id_lokasi_list:
             
@@ -114,7 +137,7 @@ async def get_susu_data(db: Session = Depends(get_db)):
             
             # Get Susu Segar Data
             responses[year][lokasi_str]['susu_segar'] = {}
-            dis_susu_segar = (
+            query = (
                 db.query(func.sum(FactDistribusi.jumlah_distribusi))
                 .where(FactDistribusi.id_jenis_produk == 3)
                 .where(FactDistribusi.id_lokasi == id_lokasi)
@@ -126,15 +149,20 @@ async def get_susu_data(db: Session = Depends(get_db)):
                         .all()
                     )
                 ]))
-                .scalar()
+                # .scalar()
             )
+            
+            if id_unit_peternakan is not None:
+                query = query.where(FactDistribusi.id_unit_peternak == id_unit_peternakan)
+                
+            dis_susu_segar = query.scalar()
             
             if dis_susu_segar is None:
                 responses[year][lokasi_str]['susu_segar']['distribusi'] = 0
             else:
                 responses[year][lokasi_str]['susu_segar']['distribusi'] = dis_susu_segar
                 
-            pro_susu_segar = (
+            query = (
                 db.query(func.sum(FactProduksi.jumlah_produksi))
                 .where(FactProduksi.id_jenis_produk == 3)
                 .where(FactProduksi.id_lokasi == id_lokasi)
@@ -146,8 +174,13 @@ async def get_susu_data(db: Session = Depends(get_db)):
                         .all()
                     )
                 ]))
-                .scalar()
+                # .scalar()
             )
+            
+            if id_unit_peternakan is not None:
+                query = query.where(FactProduksi.id_unit_peternak == id_unit_peternakan)
+            
+            pro_susu_segar = query.scalar()
             
             if pro_susu_segar is None:
                 responses[year][lokasi_str]['susu_segar']['produksi'] = 0
@@ -157,7 +190,7 @@ async def get_susu_data(db: Session = Depends(get_db)):
                 
             # Get Susu Pasteurisasi Data
             responses[year][lokasi_str]['susu_pasteurisasi'] = {}
-            dis_susu_pasteurisasi = (
+            query = (
                 db.query(func.sum(FactDistribusi.jumlah_distribusi))
                 .where(FactDistribusi.id_jenis_produk == 4)
                 .where(FactDistribusi.id_lokasi == id_lokasi)
@@ -169,15 +202,20 @@ async def get_susu_data(db: Session = Depends(get_db)):
                         .all()
                     )
                 ]))
-                .scalar()
+                # .scalar()
             )
+            
+            if id_unit_peternakan is not None:
+                query = query.where(FactDistribusi.id_unit_peternak == id_unit_peternakan)
+            
+            dis_susu_pasteurisasi = query.scalar()
             
             if dis_susu_pasteurisasi is None:
                 responses[year][lokasi_str]['susu_pasteurisasi']['distribusi'] = 0
             else:
                 responses[year][lokasi_str]['susu_pasteurisasi']['distribusi'] = dis_susu_pasteurisasi
                 
-            pro_susu_pasteurisasi = (
+            query = (
                 db.query(func.sum(FactProduksi.jumlah_produksi))
                 .where(FactProduksi.id_jenis_produk == 4)
                 .where(FactProduksi.id_lokasi == id_lokasi)
@@ -189,8 +227,13 @@ async def get_susu_data(db: Session = Depends(get_db)):
                         .all()
                     )
                 ]))
-                .scalar()
+                # .scalar()
             )
+            
+            if id_unit_peternakan is not None:
+                query = query.where(FactProduksi.id_unit_peternak == id_unit_peternakan)
+                
+            pro_susu_pasteurisasi = query.scalar()
             
             if pro_susu_pasteurisasi is None:
                 responses[year][lokasi_str]['susu_pasteurisasi']['produksi'] = 0
@@ -200,7 +243,7 @@ async def get_susu_data(db: Session = Depends(get_db)):
             
             # Get Susu Kefir Data
             responses[year][lokasi_str]['susu_kefir'] = {}
-            dis_susu_kefir = (
+            query = (
                 db.query(func.sum(FactDistribusi.jumlah_distribusi))
                 .where(FactDistribusi.id_jenis_produk == 5)
                 .where(FactDistribusi.id_lokasi == id_lokasi)
@@ -212,15 +255,20 @@ async def get_susu_data(db: Session = Depends(get_db)):
                         .all()
                     )
                 ]))
-                .scalar()
+                # .scalar()
             )
+            
+            if id_unit_peternakan is not None:
+                query = query.where(FactDistribusi.id_unit_peternak == id_unit_peternakan)
+                
+            dis_susu_kefir = query.scalar()
             
             if dis_susu_kefir is None:
                 responses[year][lokasi_str]['susu_kefir']['distribusi'] = 0
             else:
                 responses[year][lokasi_str]['susu_kefir']['distribusi'] = dis_susu_kefir
             
-            pro_susu_kefir = (
+            query = (
                 db.query(func.sum(FactProduksi.jumlah_produksi))
                 .where(FactProduksi.id_jenis_produk == 5)
                 .where(FactProduksi.id_lokasi == id_lokasi)
@@ -232,8 +280,13 @@ async def get_susu_data(db: Session = Depends(get_db)):
                         .all()
                     )
                 ]))
-                .scalar()
+                # .scalar()
             )
+            
+            if id_unit_peternakan is not None:
+                query = query.where(FactProduksi.id_unit_peternak == id_unit_peternakan)
+                
+            pro_susu_kefir = query.scalar()
             
             if pro_susu_kefir is None:
                 responses[year][lokasi_str]['susu_kefir']['produksi'] = 0
@@ -243,7 +296,7 @@ async def get_susu_data(db: Session = Depends(get_db)):
             
             # Get Yogurt Data
             responses[year][lokasi_str]['yogurt'] = {}
-            dis_yogurt = (
+            query = (
                 db.query(func.sum(FactDistribusi.jumlah_distribusi))
                 .where(FactDistribusi.id_jenis_produk == 6)
                 .where(FactDistribusi.id_lokasi == id_lokasi)
@@ -255,15 +308,20 @@ async def get_susu_data(db: Session = Depends(get_db)):
                         .all()
                     )
                 ]))
-                .scalar()
+                # .scalar()
             )
+            
+            if id_unit_peternakan is not None:
+                query = query.where(FactDistribusi.id_unit_peternak == id_unit_peternakan)
+                
+            dis_yogurt = query.scalar()
             
             if dis_yogurt is None:
                 responses[year][lokasi_str]['yogurt']['distribusi'] = 0
             else:
                 responses[year][lokasi_str]['yogurt']['distribusi'] = dis_yogurt
                 
-            pro_yogurt = (
+            query = (
                 db.query(func.sum(FactProduksi.jumlah_produksi))
                 .where(FactProduksi.id_jenis_produk == 6)
                 .where(FactProduksi.id_lokasi == id_lokasi)
@@ -275,8 +333,13 @@ async def get_susu_data(db: Session = Depends(get_db)):
                         .all()
                     )
                 ]))
-                .scalar()
+                # .scalar()
             )
+            
+            if id_unit_peternakan is not None:
+                query = query.where(FactProduksi.id_unit_peternak == id_unit_peternakan)
+                
+            pro_yogurt = query.scalar()
             
             if pro_yogurt is None:
                 responses[year][lokasi_str]['yogurt']['produksi'] = 0
@@ -286,7 +349,7 @@ async def get_susu_data(db: Session = Depends(get_db)):
             
             # Get Keju Data
             responses[year][lokasi_str]['keju'] = {}
-            dis_keju = (
+            query = (
                 db.query(func.sum(FactDistribusi.jumlah_distribusi))
                 .where(FactDistribusi.id_jenis_produk == 7)
                 .where(FactDistribusi.id_lokasi == id_lokasi)
@@ -298,15 +361,20 @@ async def get_susu_data(db: Session = Depends(get_db)):
                         .all()
                     )
                 ]))
-                .scalar()
+                # .scalar()
             )
+            
+            if id_unit_peternakan is not None:
+                query = query.where(FactDistribusi.id_unit_peternak == id_unit_peternakan)
+                
+            dis_keju = query.scalar()
             
             if dis_keju is None:
                 responses[year][lokasi_str]['keju']['distribusi'] = 0
             else:
                 responses[year][lokasi_str]['keju']['distribusi'] = dis_keju
                 
-            pro_keju = (
+            query = (
                 db.query(func.sum(FactProduksi.jumlah_produksi))
                 .where(FactProduksi.id_jenis_produk == 7)
                 .where(FactProduksi.id_lokasi == id_lokasi)
@@ -318,8 +386,13 @@ async def get_susu_data(db: Session = Depends(get_db)):
                         .all()
                     )
                 ]))
-                .scalar()
+                # .scalar()
             )
+            
+            if id_unit_peternakan is not None:
+                query = query.where(FactProduksi.id_unit_peternak == id_unit_peternakan)
+                
+            pro_keju = query.scalar()
             
             if pro_keju is None:
                 responses[year][lokasi_str]['keju']['produksi'] = 0
