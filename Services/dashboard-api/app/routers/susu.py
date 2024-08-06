@@ -12,6 +12,7 @@ from app.database.connection import SessionLocal
 from app.database.models import DimLokasi, DimWaktu, DimMitraBisnis, FactDistribusi, FactProduksi, DimUnitPeternakan
 from app.schemas.susu import SusuMasterData
 
+from decimal import Decimal
 
 router = APIRouter(redirect_slashes=False)
 
@@ -23,639 +24,481 @@ def get_db():
         db.close()
         
 
+def get_produksi_data(db, id_jenis_produk: int, tahun: int, provinsi: str, unit_peternakan: str):
+    prod_subquery = (
+        db.query(DimWaktu.tahun,
+                 DimLokasi.provinsi,
+                 DimUnitPeternakan.nama_unit,
+                 FactProduksi.jumlah_produksi)
+        .join(DimWaktu, DimWaktu.id == FactProduksi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactProduksi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactProduksi.id_unit_peternakan)
+        .where(FactProduksi.id_jenis_produk == id_jenis_produk)
+    )
+    
+    if tahun:
+        prod_subquery = prod_subquery.where(DimWaktu.tahun == tahun)
+    if provinsi:
+        prod_subquery = prod_subquery.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        prod_subquery = prod_subquery.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    prod_subquery = prod_subquery.subquery()    
+    query = db.query(
+        func.sum(prod_subquery.c.jumlah_produksi).label('total_produksi')
+    )
+    
+    return query.scalar()
+
+def get_distribusi_data(db, id_jenis_produk: int, tahun: int, provinsi: str, unit_peternakan: str):
+    dis_subquery = (
+        db.query(DimWaktu.tahun,
+                 DimLokasi.provinsi,
+                 DimUnitPeternakan.nama_unit,
+                 FactDistribusi.jumlah_distribusi)
+        .join(DimWaktu, DimWaktu.id == FactDistribusi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactDistribusi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactDistribusi.id_unit_peternakan)
+        .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+    )
+    
+    if tahun:
+        dis_subquery = dis_subquery.where(DimWaktu.tahun == tahun)
+    if provinsi:
+        dis_subquery = dis_subquery.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        dis_subquery = dis_subquery.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    dis_subquery = dis_subquery.subquery()    
+    query = db.query(
+        func.sum(dis_subquery.c.jumlah_distribusi).label('total_distribusi')
+    )
+    
+    return query.scalar()
+ 
+def get_produksi_series_by_interval(db, id_jenis_produk:int, provinsi: str, unit_peternakan: str, days=365):
+    start_date = datetime.today() - timedelta(days=days)
+    end_date = datetime.today()
+    
+    sub_query = (
+        db.query(DimWaktu.tanggal,
+                 FactProduksi.jumlah_produksi)
+        .join(DimWaktu, DimWaktu.id == FactProduksi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactProduksi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactProduksi.id_unit_peternakan)
+        .where(DimWaktu.tanggal >= start_date)
+        .where(FactProduksi.id_jenis_produk == id_jenis_produk)
+    )
+    
+    if provinsi:
+        sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        sub_query = sub_query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    sub_query = sub_query.subquery()
+    
+    query = (
+        db.query(sub_query.c.tanggal,
+                 func.sum(sub_query.c.jumlah_produksi).label('total_produksi'))
+        .group_by(sub_query.c.tanggal)
+        .order_by(sub_query.c.tanggal)
+    )
+    
+    data_dict = {item[0].strftime('%d-%m-%Y'): int(item[1]) for item in query.all()}
+    all_dates = {(start_date + timedelta(days=i)).strftime('%d-%m-%Y') for i in range((end_date - start_date).days)}
+    complete_data = {date: data_dict.get(date, 0) for date in all_dates}
+    sorted_data = sorted(complete_data.items(), key=lambda x: datetime.strptime(x[0], '%d-%m-%Y'))
+    sorted_data_dict = dict(sorted_data)
+    
+    return sorted_data_dict
+
+def get_produksi_series_by_year(db, id_jenis_produk:int, tahun: int, provinsi: str, unit_peternakan: str):
+    start_date = dt.datetime(tahun, 1, 1)
+    end_date = dt.datetime(tahun, 12, 31)
+    
+    sub_query = (
+        db.query(DimWaktu.tanggal,
+                 FactProduksi.jumlah_produksi)
+        .join(DimWaktu, DimWaktu.id == FactProduksi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactProduksi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactProduksi.id_unit_peternakan)
+        .where(DimWaktu.tahun == tahun)
+        .where(FactProduksi.id_jenis_produk == id_jenis_produk)
+    )
+    
+    if provinsi:
+        sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        sub_query = sub_query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    sub_query = sub_query.subquery()
+    
+    query = (
+        db.query(sub_query.c.tanggal,
+                 func.sum(sub_query.c.jumlah_produksi).label('total_distribusi'))
+        .group_by(sub_query.c.tanggal)
+        .order_by(sub_query.c.tanggal)
+    )
+    
+    data_dict = {item[0].strftime('%d-%m-%Y'): int(item[1]) for item in query.all()}
+    all_dates = {(start_date + timedelta(days=i)).strftime('%d-%m-%Y') for i in range((end_date - start_date).days + 1)}
+    complete_data = {date: data_dict.get(date, 0) for date in all_dates}
+    sorted_data = sorted(complete_data.items(), key=lambda x: datetime.strptime(x[0], '%d-%m-%Y'))
+    sorted_data_dict = dict(sorted_data)
+    
+    return sorted_data_dict
+    
+def get_distribusi_series_by_interval(db, id_jenis_produk:int, provinsi: str, unit_peternakan: str, days=365):
+    start_date = datetime.today() - timedelta(days=days)
+    end_date = datetime.today()
+    
+    sub_query = (
+        db.query(DimWaktu.tanggal,
+                 FactDistribusi.jumlah_distribusi)
+        .join(DimWaktu, DimWaktu.id == FactDistribusi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactDistribusi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactDistribusi.id_unit_peternakan)
+        .where(DimWaktu.tanggal >= start_date)
+        .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+    )
+    
+    if provinsi:
+        sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        sub_query = sub_query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    sub_query = sub_query.subquery()
+    
+    query = (
+        db.query(sub_query.c.tanggal,
+                 func.sum(sub_query.c.jumlah_distribusi).label('total_distribusi'))
+        .group_by(sub_query.c.tanggal)
+        .order_by(sub_query.c.tanggal)
+    )
+    
+    data_dict = {item[0].strftime('%d-%m-%Y'): int(item[1]) for item in query.all()}
+    all_dates = {(start_date + timedelta(days=i)).strftime('%d-%m-%Y') for i in range((end_date - start_date).days)}
+    complete_data = {date: data_dict.get(date, 0) for date in all_dates}
+    sorted_data = sorted(complete_data.items(), key=lambda x: datetime.strptime(x[0], '%d-%m-%Y'))
+    sorted_data_dict = dict(sorted_data)
+    
+    return sorted_data_dict
+
+def get_distribusi_series_by_year(db, id_jenis_produk:int, tahun: int, provinsi: str, unit_peternakan: str):
+    start_date = dt.datetime(tahun, 1, 1)
+    end_date = dt.datetime(tahun, 12, 31)
+    
+    sub_query = (
+        db.query(DimWaktu.tanggal,
+                 FactDistribusi.jumlah_distribusi)
+        .join(DimWaktu, DimWaktu.id == FactDistribusi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactDistribusi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactDistribusi.id_unit_peternakan)
+        .where(DimWaktu.tahun == tahun)
+        .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+    )
+    
+    if provinsi:
+        sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        sub_query = sub_query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    sub_query = sub_query.subquery()
+    
+    query = (
+        db.query(sub_query.c.tanggal,
+                 func.sum(sub_query.c.jumlah_distribusi).label('total_distribusi'))
+        .group_by(sub_query.c.tanggal)
+        .order_by(sub_query.c.tanggal)
+    )
+    
+    data_dict = {item[0].strftime('%d-%m-%Y'): int(item[1]) for item in query.all()}
+    all_dates = {(start_date + timedelta(days=i)).strftime('%d-%m-%Y') for i in range((end_date - start_date).days + 1)}
+    complete_data = {date: data_dict.get(date, 0) for date in all_dates}
+    sorted_data = sorted(complete_data.items(), key=lambda x: datetime.strptime(x[0], '%d-%m-%Y'))
+    sorted_data_dict = dict(sorted_data)
+    
+    return sorted_data_dict
+
+def get_permintaan_susu_segar_dari_mitra(db, id_jenis_produk:int, tahun: int, provinsi: str, unit_peternakan: str):
+    sub_query = (
+        db.query(DimMitraBisnis.nama_mitra_bisnis,
+                 FactDistribusi.jumlah_distribusi)
+        .join(DimWaktu, DimWaktu.id == FactDistribusi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactDistribusi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactDistribusi.id_unit_peternakan)
+        .join(DimMitraBisnis, DimMitraBisnis.id == FactDistribusi.id_mitra_bisnis)
+        .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+    )
+   
+    if tahun:
+        sub_query = sub_query.where(DimWaktu.tahun == tahun)
+    if provinsi:
+        sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        sub_query = sub_query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+    
+    sub_query = sub_query.subquery()
+    
+    query = (
+        db.query(sub_query.c.nama_mitra_bisnis,
+                 func.sum(sub_query.c.jumlah_distribusi).label('total_distribusi'))
+        .group_by(sub_query.c.nama_mitra_bisnis)
+        .order_by(func.sum(sub_query.c.jumlah_distribusi).desc())
+    )
+    
+    data_dict = {item[0]: round(item[1], 2) for item in query.all()}
+    
+    return data_dict
+
+def get_total_pendapatan(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
+    
+    query = (
+        db.query(FactDistribusi.jumlah_distribusi, 
+                 FactDistribusi.harga_rata_rata)
+        .join(DimWaktu, DimWaktu.id == FactDistribusi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactDistribusi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactDistribusi.id_unit_peternakan)
+        .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+    )
+    
+    if tahun:
+        query = query.where(DimWaktu.tahun == tahun)
+    if provinsi:
+        query = query.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        query = query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    data_list = query.all()
+    
+    total_pendapatan = 0
+    for data in data_list:
+        total_pendapatan += data[0] * data[1]
+        
+    return total_pendapatan
+    
+def get_harga_minimum(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
+    sub_query = (
+        db.query(FactDistribusi.harga_minimum)
+        .join(DimWaktu, DimWaktu.id == FactDistribusi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactDistribusi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactDistribusi.id_unit_peternakan)
+        .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+    )
+    
+    if tahun:
+        sub_query = sub_query.where(DimWaktu.tahun == tahun)
+    if provinsi:
+        sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        sub_query = sub_query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    sub_query = sub_query.subquery()
+    
+    query = (
+        db.query(func.min(sub_query.c.harga_minimum).label('harga_minimum'))
+    )
+    
+    return query.scalar()
+
+def get_harga_maximum(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
+    sub_query = (
+        db.query(FactDistribusi.harga_maximum)
+        .join(DimWaktu, DimWaktu.id == FactDistribusi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactDistribusi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactDistribusi.id_unit_peternakan)
+        .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+    )
+    
+    if tahun:
+        sub_query = sub_query.where(DimWaktu.tahun == tahun)
+    if provinsi:
+        sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        sub_query = sub_query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    sub_query = sub_query.subquery()
+    
+    query = (
+        db.query(func.max(sub_query.c.harga_maximum).label('harga_maximum'))
+    )
+    
+    return query.scalar()
+
+def get_harga_rata_rata(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
+    sub_query = (
+        db.query(FactDistribusi.harga_rata_rata)
+        .join(DimWaktu, DimWaktu.id == FactDistribusi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactDistribusi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactDistribusi.id_unit_peternakan)
+        .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+    )
+    
+    if tahun:
+        sub_query = sub_query.where(DimWaktu.tahun == tahun)
+    if provinsi:
+        sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        sub_query = sub_query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    sub_query = sub_query.subquery()
+    
+    query = (
+        db.query(func.avg(sub_query.c.harga_rata_rata).label('harga_rata_rata'))
+    )
+    
+    return round(query.scalar(), 2)
+
+def convert_decimals(obj):
+    if isinstance(obj, dict):
+        return {k: convert_decimals(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_decimals(i) for i in obj]
+    elif isinstance(obj, Decimal):
+        return float(obj)
+    else:
+        return obj
+
+
 @router.get(path='/susu')
 async def get_susu_data(db: Session = Depends(get_db),
                         tahun: int | None = None,
                         provinsi: str | None = None,
                         unit_peternakan: str | None = None):
     
-    responses = {}
-    
-    # Get Year
-    dis_id_waktu_list = (
-        db.query(FactDistribusi.id_waktu)
-        .distinct()
-        .all()
-    )
-    
-    pro_id_waktu_list = (
-        db.query(FactProduksi.id_waktu)
-        .distinct()
-        .all()
-    )
-    
-    pro_dis_id_waktu_list = []
-    for item in dis_id_waktu_list + pro_id_waktu_list:
-        if item[0] not in pro_dis_id_waktu_list:
-            pro_dis_id_waktu_list.append(item[0])
-    
-    year_list = (
-        db.query(DimWaktu.tahun)
-        .where(DimWaktu.id.in_(pro_dis_id_waktu_list))
-        .distinct()
-        .all()
-    )
-    year_list = [year[0] for year in year_list]
-    
-    if tahun is not None:
-        year_list = [tahun]
-    
-    for year in year_list:
-        responses[year] = {}
+    try:
+        responses = {}
         
-        dis_id_lokasi_list = (
-            db.query(FactDistribusi.id_lokasi)
-            .where(FactDistribusi.id_waktu.in_([
-                item[0]
-                for item in (
-                    db.query(DimWaktu.id)
-                    .where(DimWaktu.tahun == year)
-                    .all()
-                )
-            ]))
-            .distinct()
-            .all()
+        # Susu Segar
+        responses['susu_segar'] = {}
+        responses['susu_segar']['produksi'] = get_produksi_data(db, 3, tahun, provinsi, unit_peternakan)
+        responses['susu_segar']['distribusi'] = get_distribusi_data(db, 3, tahun, provinsi, unit_peternakan)
+        
+        # Susu Pasteurisasi
+        responses['susu_pasteurisasi'] = {}
+        responses['susu_pasteurisasi']['produksi'] = get_produksi_data(db, 4, tahun, provinsi, unit_peternakan)
+        responses['susu_pasteurisasi']['distribusi'] = get_distribusi_data(db, 4, tahun, provinsi, unit_peternakan)
+        
+        # Susu Kefir
+        responses['susu_kefir'] = {}
+        responses['susu_kefir']['produksi'] = get_produksi_data(db, 5, tahun, provinsi, unit_peternakan)
+        responses['susu_kefir']['distribusi'] = get_distribusi_data(db, 5, tahun, provinsi, unit_peternakan)
+        
+        # Yogurt
+        responses['yogurt'] = {}
+        responses['yogurt']['produksi'] = get_produksi_data(db, 6, tahun, provinsi, unit_peternakan)
+        responses['yogurt']['distribusi'] = get_distribusi_data(db, 6, tahun, provinsi, unit_peternakan)
+        
+        # Keju
+        responses['keju'] = {}
+        responses['keju']['produksi'] = get_produksi_data(db, 7, tahun, provinsi, unit_peternakan)
+        responses['keju']['distribusi'] = get_distribusi_data(db, 7, tahun, provinsi, unit_peternakan)
+        
+        # Persentase Produksi
+        total_produksi = (
+            (responses['susu_segar']['produksi'] or 0) + \
+            (responses['susu_pasteurisasi']['produksi'] or 0)+ \
+            (responses['susu_kefir']['produksi'] or 0) + \
+            (responses['yogurt']['produksi'] or 0)
         )
         
-        pro_id_lokasi_list = (
-            db.query(FactProduksi.id_lokasi)
-            .where(FactProduksi.id_waktu.in_([
-                item[0]
-                for item in (
-                    db.query(DimWaktu.id)
-                    .where(DimWaktu.tahun == year)
-                    .all()
-                )
-            ]))
-            .distinct()
-            .all()
+        responses['persentase_produksi'] = {}
+        
+        if total_produksi == 0:
+            responses['persentase_produksi']['susu_segar'] = 0
+            responses['persentase_produksi']['susu_pasteurisasi'] = 0
+            responses['persentase_produksi']['susu_kefir'] = 0
+            responses['persentase_produksi']['yogurt'] = 0
+        else:
+            responses['persentase_produksi']['susu_segar'] = round((responses['susu_segar']['produksi'] or 0) / total_produksi, 2)
+            responses['persentase_produksi']['susu_pasteurisasi'] = round((responses['susu_pasteurisasi']['produksi'] or 0) / total_produksi, 2)
+            responses['persentase_produksi']['susu_kefir'] = round((responses['susu_kefir']['produksi'] or 0) / total_produksi, 2)
+            responses['persentase_produksi']['yogurt'] = round((responses['yogurt']['produksi'] or 0) / total_produksi, 2)
+        
+        # Persentase Distribusi
+        total_distribusi = (
+            (responses['susu_segar']['distribusi'] or 0) + \
+            (responses['susu_pasteurisasi']['distribusi'] or 0) + \
+            (responses['susu_kefir']['distribusi'] or 0) + \
+            (responses['yogurt']['distribusi'] or 0)
         )
         
-        pro_dis_id_lokasi_list = []
-        for item in dis_id_lokasi_list + pro_id_lokasi_list:
-            if item[0] not in pro_dis_id_lokasi_list:
-                pro_dis_id_lokasi_list.append(item[0])
-                
-        if provinsi is not None:
-            pro_dis_id_lokasi_list = [
-                item[0]
-                for item in (
-                    db.query(DimLokasi.id)
-                    .where(DimLokasi.provinsi == provinsi)
-                    .all()
-                )
-            ]
+        responses['persentase_distribusi'] = {}
+        
+        if total_distribusi == 0:
+            responses['persentase_distribusi']['susu_segar'] = 0
+            responses['persentase_distribusi']['susu_pasteurisasi'] = 0
+            responses['persentase_distribusi']['susu_kefir'] = 0
+            responses['persentase_distribusi']['yogurt'] = 0
+        else:
+            responses['persentase_distribusi']['susu_segar'] = round((responses['susu_segar']['distribusi'] or 0)/ total_distribusi, 2)
+            responses['persentase_distribusi']['susu_pasteurisasi'] = round((responses['susu_pasteurisasi']['distribusi'] or 0)/ total_distribusi, 2)
+            responses['persentase_distribusi']['susu_kefir'] = round((responses['susu_kefir']['distribusi'] or 0) / total_distribusi, 2)
+            responses['persentase_distribusi']['yogurt'] = round((responses['yogurt']['distribusi'] or 0) / total_distribusi, 2)
+            
+        # Produksi dan Distribusi Susu Segar
+        responses['prod_dis_susu_segar'] = {}
+        
+        if tahun:
+            produksi = get_produksi_series_by_year(db, 3, tahun, provinsi, unit_peternakan)
+            distribusi = get_distribusi_series_by_year(db, 3, tahun, provinsi, unit_peternakan)
 
-        if unit_peternakan is not None:
-            id_unit_peternakan = (
-                db.query(DimUnitPeternakan.id)
-                .where(DimUnitPeternakan.nama_unit == unit_peternakan)
-                .first()
+            responses['prod_dis_susu_segar']['label'] = list(produksi.keys())
+            responses['prod_dis_susu_segar']['produksi'] = list(produksi.values())
+            responses['prod_dis_susu_segar']['distribusi'] = list(distribusi.values())
+        else:
+            produksi = get_produksi_series_by_interval(db, 3, provinsi, unit_peternakan)
+            distribusi = get_distribusi_series_by_interval(db, 3, provinsi, unit_peternakan)
+            
+            responses['prod_dis_susu_segar']['label'] = list(produksi.keys())
+            responses['prod_dis_susu_segar']['produksi'] = list(produksi.values())
+            responses['prod_dis_susu_segar']['distribusi'] = list(distribusi.values())
+        
+        # Permintaan Susu Segar dari Mitra Bisnis
+        responses['permintaan_susu_segar_dari_mitra_all'] = {}
+        
+        mitra_bisnis = get_permintaan_susu_segar_dari_mitra(db, 3, tahun, provinsi, unit_peternakan)
+        
+        responses['permintaan_susu_segar_dari_mitra_all']['label'] = list(mitra_bisnis.keys())
+        responses['permintaan_susu_segar_dari_mitra_all']['value'] = list(mitra_bisnis.values())
+        
+        # Total Persentase Distribusi
+        try:
+            responses['total_persentase_distribusi'] = round(
+                (
+                    (responses['susu_segar']['distribusi'] or 0) + \
+                    (responses['susu_pasteurisasi']['distribusi'] or 0) + \
+                    (responses['susu_kefir']['distribusi'] or 0) + \
+                    (responses['yogurt']['distribusi'] or 0)
+                ) / (
+                    (responses['susu_segar']['produksi'] or 0) + \
+                    (responses['susu_pasteurisasi']['produksi'] or 0) + \
+                    (responses['susu_kefir']['produksi'] or 0) + \
+                    (responses['yogurt']['produksi'] or 0)
+                ), 2
             )
-                
-        # Search data in every location
-        for id_lokasi in pro_dis_id_lokasi_list:
-            
-            lokasi_data = (
-                db.query(DimLokasi.provinsi, 
-                         DimLokasi.kabupaten_kota, 
-                         DimLokasi.kecamatan)
-                .where(DimLokasi.id == id_lokasi)
-                .first()
-            )
-            
-            if lokasi_data[1] is None:
-                lokasi_str = f"{lokasi_data[0]}" 
-            else:
-                if lokasi_data[2] is None:
-                    lokasi_str = f"{lokasi_data[0]} - {lokasi_data[1]}"
-                else:
-                    lokasi_str = f"{lokasi_data[0]} - {lokasi_data[1]} - {lokasi_data[2]}"
-                    
-            responses[year][lokasi_str] = {}
-            
-            
-            # Get Susu Segar Data
-            responses[year][lokasi_str]['susu_segar'] = {}
-            query = (
-                db.query(func.sum(FactDistribusi.jumlah_distribusi))
-                .where(FactDistribusi.id_jenis_produk == 3)
-                .where(FactDistribusi.id_lokasi == id_lokasi)
-                .where(FactDistribusi.id_waktu.in_([
-                    item[0]
-                    for item in (
-                        db.query(DimWaktu.id)
-                        .where(DimWaktu.tahun == year)
-                        .all()
-                    )
-                ]))
-                # .scalar()
-            )
-            
-            if id_unit_peternakan is not None:
-                query = query.where(FactDistribusi.id_unit_peternak == id_unit_peternakan)
-                
-            dis_susu_segar = query.scalar()
-            
-            if dis_susu_segar is None:
-                responses[year][lokasi_str]['susu_segar']['distribusi'] = 0
-            else:
-                responses[year][lokasi_str]['susu_segar']['distribusi'] = dis_susu_segar
-                
-            query = (
-                db.query(func.sum(FactProduksi.jumlah_produksi))
-                .where(FactProduksi.id_jenis_produk == 3)
-                .where(FactProduksi.id_lokasi == id_lokasi)
-                .where(FactProduksi.id_waktu.in_([
-                    item[0]
-                    for item in (
-                        db.query(DimWaktu.id)
-                        .where(DimWaktu.tahun == year)
-                        .all()
-                    )
-                ]))
-                # .scalar()
-            )
-            
-            if id_unit_peternakan is not None:
-                query = query.where(FactProduksi.id_unit_peternak == id_unit_peternakan)
-            
-            pro_susu_segar = query.scalar()
-            
-            if pro_susu_segar is None:
-                responses[year][lokasi_str]['susu_segar']['produksi'] = 0
-            else:
-                responses[year][lokasi_str]['susu_segar']['produksi'] = pro_susu_segar
-            
-                
-            # Get Susu Pasteurisasi Data
-            responses[year][lokasi_str]['susu_pasteurisasi'] = {}
-            query = (
-                db.query(func.sum(FactDistribusi.jumlah_distribusi))
-                .where(FactDistribusi.id_jenis_produk == 4)
-                .where(FactDistribusi.id_lokasi == id_lokasi)
-                .where(FactDistribusi.id_waktu.in_([
-                    item[0]
-                    for item in (
-                        db.query(DimWaktu.id)
-                        .where(DimWaktu.tahun == year)
-                        .all()
-                    )
-                ]))
-                # .scalar()
-            )
-            
-            if id_unit_peternakan is not None:
-                query = query.where(FactDistribusi.id_unit_peternak == id_unit_peternakan)
-            
-            dis_susu_pasteurisasi = query.scalar()
-            
-            if dis_susu_pasteurisasi is None:
-                responses[year][lokasi_str]['susu_pasteurisasi']['distribusi'] = 0
-            else:
-                responses[year][lokasi_str]['susu_pasteurisasi']['distribusi'] = dis_susu_pasteurisasi
-                
-            query = (
-                db.query(func.sum(FactProduksi.jumlah_produksi))
-                .where(FactProduksi.id_jenis_produk == 4)
-                .where(FactProduksi.id_lokasi == id_lokasi)
-                .where(FactProduksi.id_waktu.in_([
-                    item[0]
-                    for item in (
-                        db.query(DimWaktu.id)
-                        .where(DimWaktu.tahun == year)
-                        .all()
-                    )
-                ]))
-                # .scalar()
-            )
-            
-            if id_unit_peternakan is not None:
-                query = query.where(FactProduksi.id_unit_peternak == id_unit_peternakan)
-                
-            pro_susu_pasteurisasi = query.scalar()
-            
-            if pro_susu_pasteurisasi is None:
-                responses[year][lokasi_str]['susu_pasteurisasi']['produksi'] = 0
-            else:
-                responses[year][lokasi_str]['susu_pasteurisasi']['produksi'] = pro_susu_pasteurisasi
-                
-            
-            # Get Susu Kefir Data
-            responses[year][lokasi_str]['susu_kefir'] = {}
-            query = (
-                db.query(func.sum(FactDistribusi.jumlah_distribusi))
-                .where(FactDistribusi.id_jenis_produk == 5)
-                .where(FactDistribusi.id_lokasi == id_lokasi)
-                .where(FactDistribusi.id_waktu.in_([
-                    item[0]
-                    for item in (
-                        db.query(DimWaktu.id)
-                        .where(DimWaktu.tahun == year)
-                        .all()
-                    )
-                ]))
-                # .scalar()
-            )
-            
-            if id_unit_peternakan is not None:
-                query = query.where(FactDistribusi.id_unit_peternak == id_unit_peternakan)
-                
-            dis_susu_kefir = query.scalar()
-            
-            if dis_susu_kefir is None:
-                responses[year][lokasi_str]['susu_kefir']['distribusi'] = 0
-            else:
-                responses[year][lokasi_str]['susu_kefir']['distribusi'] = dis_susu_kefir
-            
-            query = (
-                db.query(func.sum(FactProduksi.jumlah_produksi))
-                .where(FactProduksi.id_jenis_produk == 5)
-                .where(FactProduksi.id_lokasi == id_lokasi)
-                .where(FactProduksi.id_waktu.in_([
-                    item[0]
-                    for item in (
-                        db.query(DimWaktu.id)
-                        .where(DimWaktu.tahun == year)
-                        .all()
-                    )
-                ]))
-                # .scalar()
-            )
-            
-            if id_unit_peternakan is not None:
-                query = query.where(FactProduksi.id_unit_peternak == id_unit_peternakan)
-                
-            pro_susu_kefir = query.scalar()
-            
-            if pro_susu_kefir is None:
-                responses[year][lokasi_str]['susu_kefir']['produksi'] = 0
-            else:
-                responses[year][lokasi_str]['susu_kefir']['produksi'] = pro_susu_kefir
-                
-            
-            # Get Yogurt Data
-            responses[year][lokasi_str]['yogurt'] = {}
-            query = (
-                db.query(func.sum(FactDistribusi.jumlah_distribusi))
-                .where(FactDistribusi.id_jenis_produk == 6)
-                .where(FactDistribusi.id_lokasi == id_lokasi)
-                .where(FactDistribusi.id_waktu.in_([
-                    item[0]
-                    for item in (
-                        db.query(DimWaktu.id)
-                        .where(DimWaktu.tahun == year)
-                        .all()
-                    )
-                ]))
-                # .scalar()
-            )
-            
-            if id_unit_peternakan is not None:
-                query = query.where(FactDistribusi.id_unit_peternak == id_unit_peternakan)
-                
-            dis_yogurt = query.scalar()
-            
-            if dis_yogurt is None:
-                responses[year][lokasi_str]['yogurt']['distribusi'] = 0
-            else:
-                responses[year][lokasi_str]['yogurt']['distribusi'] = dis_yogurt
-                
-            query = (
-                db.query(func.sum(FactProduksi.jumlah_produksi))
-                .where(FactProduksi.id_jenis_produk == 6)
-                .where(FactProduksi.id_lokasi == id_lokasi)
-                .where(FactProduksi.id_waktu.in_([
-                    item[0]
-                    for item in (
-                        db.query(DimWaktu.id)
-                        .where(DimWaktu.tahun == year)
-                        .all()
-                    )
-                ]))
-                # .scalar()
-            )
-            
-            if id_unit_peternakan is not None:
-                query = query.where(FactProduksi.id_unit_peternak == id_unit_peternakan)
-                
-            pro_yogurt = query.scalar()
-            
-            if pro_yogurt is None:
-                responses[year][lokasi_str]['yogurt']['produksi'] = 0
-            else:
-                responses[year][lokasi_str]['yogurt']['produksi'] = pro_yogurt 
-                
-            
-            # Get Keju Data
-            responses[year][lokasi_str]['keju'] = {}
-            query = (
-                db.query(func.sum(FactDistribusi.jumlah_distribusi))
-                .where(FactDistribusi.id_jenis_produk == 7)
-                .where(FactDistribusi.id_lokasi == id_lokasi)
-                .where(FactDistribusi.id_waktu.in_([
-                    item[0]
-                    for item in (
-                        db.query(DimWaktu.id)
-                        .where(DimWaktu.tahun == year)
-                        .all()
-                    )
-                ]))
-                # .scalar()
-            )
-            
-            if id_unit_peternakan is not None:
-                query = query.where(FactDistribusi.id_unit_peternak == id_unit_peternakan)
-                
-            dis_keju = query.scalar()
-            
-            if dis_keju is None:
-                responses[year][lokasi_str]['keju']['distribusi'] = 0
-            else:
-                responses[year][lokasi_str]['keju']['distribusi'] = dis_keju
-                
-            query = (
-                db.query(func.sum(FactProduksi.jumlah_produksi))
-                .where(FactProduksi.id_jenis_produk == 7)
-                .where(FactProduksi.id_lokasi == id_lokasi)
-                .where(FactProduksi.id_waktu.in_([
-                    item[0]
-                    for item in (
-                        db.query(DimWaktu.id)
-                        .where(DimWaktu.tahun == year)
-                        .all()
-                    )
-                ]))
-                # .scalar()
-            )
-            
-            if id_unit_peternakan is not None:
-                query = query.where(FactProduksi.id_unit_peternak == id_unit_peternakan)
-                
-            pro_keju = query.scalar()
-            
-            if pro_keju is None:
-                responses[year][lokasi_str]['keju']['produksi'] = 0
-            else:
-                responses[year][lokasi_str]['keju']['produksi'] = pro_keju
-                
-            
-            # Get Prediction Data
-            responses[year][lokasi_str]['prediksi_produksi_susu_segar'] = []
-            responses[year][lokasi_str]['prediksi_produksi'] = None
-            # Belum ada tabel prediksi
-            
-            
-            total_produksi = (
-                responses[year][lokasi_str]['susu_segar']['produksi'] + \
-                responses[year][lokasi_str]['susu_pasteurisasi']['produksi'] + \
-                responses[year][lokasi_str]['susu_kefir']['produksi'] + \
-                responses[year][lokasi_str]['yogurt']['produksi']
-            )
-            
-            total_distribusi = (
-                responses[year][lokasi_str]['susu_segar']['distribusi'] + \
-                responses[year][lokasi_str]['susu_pasteurisasi']['distribusi'] + \
-                responses[year][lokasi_str]['susu_kefir']['distribusi'] + \
-                responses[year][lokasi_str]['yogurt']['distribusi']
-            )
-            
-            # Get percentage produksi
-            responses[year][lokasi_str]['persentase_produksi'] = {}
-            if total_produksi != 0:
-                responses[year][lokasi_str]['persentase_produksi']['susu_segar'] = round(
-                    responses[year][lokasi_str]['susu_segar']['produksi'] / total_produksi, 2
-                )
-                responses[year][lokasi_str]['persentase_produksi']['susu_pasteurisasi'] = round(
-                    responses[year][lokasi_str]['susu_pasteurisasi']['produksi'] / total_produksi, 2
-                )
-                responses[year][lokasi_str]['persentase_produksi']['susu_kefir'] = round(
-                    responses[year][lokasi_str]['susu_kefir']['produksi'] / total_produksi, 2
-                )
-                responses[year][lokasi_str]['persentase_produksi']['yogurt'] = round(
-                    responses[year][lokasi_str]['yogurt']['produksi'] / total_produksi, 2
-                )
-            else:
-                responses[year][lokasi_str]['persentase_produksi']['susu_segar'] = 0
-                responses[year][lokasi_str]['persentase_produksi']['susu_pasteurisasi'] = 0
-                responses[year][lokasi_str]['persentase_produksi']['susu_kefir'] = 0
-                responses[year][lokasi_str]['persentase_produksi']['yogurt'] = 0
-                
-            # Get percentage distribusi
-            responses[year][lokasi_str]['persentase_distribusi'] = {}
-            if total_distribusi != 0:
-                responses[year][lokasi_str]['persentase_distribusi']['susu_segar'] = round(
-                    responses[year][lokasi_str]['susu_segar']['distribusi'] / total_distribusi, 2
-                )
-                responses[year][lokasi_str]['persentase_distribusi']['susu_pasteurisasi'] = round(
-                    responses[year][lokasi_str]['susu_pasteurisasi']['distribusi'] / total_distribusi, 2
-                )
-                responses[year][lokasi_str]['persentase_distribusi']['susu_kefir'] = round(
-                    responses[year][lokasi_str]['susu_kefir']['distribusi'] / total_distribusi, 2
-                )
-                responses[year][lokasi_str]['persentase_distribusi']['yogurt'] = round(
-                    responses[year][lokasi_str]['yogurt']['distribusi'] / total_distribusi, 2
-                )
-            else:
-                responses[year][lokasi_str]['persentase_distribusi']['susu_segar'] = 0
-                responses[year][lokasi_str]['persentase_distribusi']['susu_pasteurisasi'] = 0
-                responses[year][lokasi_str]['persentase_distribusi']['susu_kefir'] = 0
-                responses[year][lokasi_str]['persentase_distribusi']['yogurt'] = 0
-                
-            # Get produksi and distribusi in location 7 days
-            start_date = datetime.today() - timedelta(days=7)
-            end_date = datetime.today()
-            
-            all_dates = {
-                (start_date + timedelta(days=x)).strftime("%Y-%m-%d"): 0
-                for x in range((end_date - start_date).days + 1)
-            }
-            
-            id_waktu_list = (
-                db.query(DimWaktu.id,
-                         DimWaktu.tanggal)
-                .where(DimWaktu.tanggal.in_(all_dates.keys()))
-                .all()
-            )
-            
-            id_waktu_dict = {
-                id_waktu[0]: id_waktu[1].strftime("%Y-%m-%d")
-                for id_waktu in id_waktu_list
-            }
-            
-            
-            responses[year][lokasi_str]['prod_dis'] = {}
-            
-            # Distribusi
-            dis_susu_segar_list = (
-                db.query(FactDistribusi.id_waktu, func.sum(FactDistribusi.jumlah_distribusi))
-                .where(and_(FactDistribusi.id_jenis_produk == 3,
-                            FactDistribusi.id_lokasi == id_lokasi,
-                            FactDistribusi.id_waktu.in_(id_waktu_dict.keys())))
-                .group_by(FactDistribusi.id_waktu)
-                .all()
-            )
-            
-            dis_susu_segar_result = {}
-            for dis_susu_segar in dis_susu_segar_list:
-                dis_susu_segar_result[id_waktu_dict[dis_susu_segar[0]]] = dis_susu_segar[1]
-            
-            responses[year][lokasi_str]['prod_dis']['distribusi'] = all_dates.copy()
-            responses[year][lokasi_str]['prod_dis']['distribusi'].update(dis_susu_segar_result)
-            
-            # Produksi
-            pro_susu_segar_list = (
-                db.query(FactProduksi.id_waktu, func.sum(FactProduksi.jumlah_produksi))
-                .where(and_(FactProduksi.id_jenis_produk == 3,
-                            FactProduksi.id_lokasi == id_lokasi,
-                            FactProduksi.id_waktu.in_(id_waktu_dict.keys())))
-                .group_by(FactProduksi.id_waktu)
-                .all()
-            )
-            
-            pro_susu_segar_result = {}
-            for pro_susu_segar in pro_susu_segar_list:
-                pro_susu_segar_result[id_waktu_dict[pro_susu_segar[0]]] = pro_susu_segar[1]
-            
-            responses[year][lokasi_str]['prod_dis']['produksi'] = all_dates.copy()
-            responses[year][lokasi_str]['prod_dis']['produksi'].update(pro_susu_segar_result)
-
-            
-            # Permintaan susu segar by mitra bisnis
-            responses[year][lokasi_str]['permintaan_susu_segar_dari_mitra'] = {}
-            
-            aggregate_by_mitra = (
-                db.query(DimMitraBisnis.nama_mitra_bisnis, func.sum(FactDistribusi.jumlah_distribusi))
-                .where(and_(FactDistribusi.id_jenis_produk == 3,
-                            FactDistribusi.id_lokasi == id_lokasi,
-                            FactDistribusi.id_waktu.in_([
-                                item[0]
-                                for item in (
-                                    db.query(DimWaktu.id)
-                                    .where(DimWaktu.tahun == year)
-                                    .all()
-                                )]
-                            )))
-                .join(DimMitraBisnis, DimMitraBisnis.id == FactDistribusi.id_mitra_bisnis)
-                .group_by(DimMitraBisnis.nama_mitra_bisnis)
-                .all()
-            )
-            mitra_result_dict = {}
-            for item in aggregate_by_mitra:
-                mitra_result_dict[item[0]] = item[1]
-                
-            responses[year][lokasi_str]['permintaan_susu_segar_dari_mitra'] = mitra_result_dict
-            
-            
-            # Get persentase distribusi data
-            try:
-                responses[year][lokasi_str]['persentase_distribusi'] = round(
-                    (
-                        responses[year][lokasi_str]['susu_segar']['distribusi'] + \
-                        responses[year][lokasi_str]['susu_pasteurisasi']['distribusi'] + \
-                        responses[year][lokasi_str]['susu_kefir']['distribusi'] + \
-                        responses[year][lokasi_str]['yogurt']['distribusi'] + \
-                        responses[year][lokasi_str]['keju']['distribusi']
-                    ) / (
-                        responses[year][lokasi_str]['susu_segar']['produksi'] + \
-                        responses[year][lokasi_str]['susu_pasteurisasi']['produksi'] + \
-                        responses[year][lokasi_str]['susu_kefir']['produksi'] + \
-                        responses[year][lokasi_str]['yogurt']['produksi'] + \
-                        responses[year][lokasi_str]['keju']['produksi']
-                    ), 2
-                )
-            except:
-                responses[year][lokasi_str]['total_persentase_distribusi'] = 0
-            
-            
-            # Get total pendapatan
-            distribusi_data_list = (
-                db.query(FactDistribusi.jumlah_distribusi, FactDistribusi.harga_rata_rata)
-                .where(and_(FactDistribusi.id_lokasi == id_lokasi,
-                            FactDistribusi.id_jenis_produk == 3,
-                            FactDistribusi.id_waktu.in_([
-                                item[0]
-                                for item in (
-                                    db.query(DimWaktu.id)
-                                    .where(DimWaktu.tahun == year)
-                                    .all()
-                                )]
-                            )))
-                .all()
-            )
-            
-            total_pendapatan = 0
-            for distribusi_data in distribusi_data_list:
-                total_pendapatan += distribusi_data[0] * distribusi_data[1]
-                
-            responses[year][lokasi_str]['total_pendapatan'] = total_pendapatan
-            
-            # Get min, max, and average harga
-            responses[year][lokasi_str]['harga_susu'] = {}
-
-            harga_minimum = (
-                db.query(func.min(FactDistribusi.harga_minimum))
-                .where(and_(FactDistribusi.id_lokasi == id_lokasi,
-                            FactDistribusi.id_jenis_produk == 3,
-                            FactDistribusi.id_waktu.in_([
-                                item[0]
-                                for item in (
-                                    db.query(DimWaktu.id)
-                                    .where(DimWaktu.tahun == year)
-                                    .all()
-                                )]
-                            )))
-                .scalar()
-            )
-            
-            if harga_minimum is not None:
-                responses[year][lokasi_str]['harga_susu']['minimum'] = harga_minimum
-            else:
-                responses[year][lokasi_str]['harga_susu']['minimum'] = 0
-                     
-            harga_maksimum = (
-                db.query(func.max(FactDistribusi.harga_maximum))
-                .where(and_(FactDistribusi.id_lokasi == id_lokasi,
-                            FactDistribusi.id_jenis_produk == 3,
-                            FactDistribusi.id_waktu.in_([
-                                item[0]
-                                for item in (
-                                    db.query(DimWaktu.id)
-                                    .where(DimWaktu.tahun == year)
-                                    .all()
-                                )]
-                            )))
-                .scalar()
-            )
-            
-            if harga_maksimum is not None:
-                responses[year][lokasi_str]['harga_susu']['maximum'] = harga_maksimum
-            else:
-                responses[year][lokasi_str]['harga_susu']['maximum'] = 0
-                    
-            harga_rataan = (
-                db.query(func.avg(FactDistribusi.harga_rata_rata))
-                .where(and_(FactDistribusi.id_lokasi == id_lokasi,
-                            FactDistribusi.id_jenis_produk == 3,
-                            FactDistribusi.id_waktu.in_([
-                                item[0]
-                                for item in (
-                                    db.query(DimWaktu.id)
-                                    .where(DimWaktu.tahun == year)
-                                    .all()
-                                )]
-                            )))
-                .scalar()
-            )
-            
-            if harga_rataan is not None:
-                responses[year][lokasi_str]['harga_susu']['rata_rata'] = float(harga_rataan)
-            else:
-                responses[year][lokasi_str]['harga_susu']['rata_rata'] = 0
-            
-                
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content=responses
-    )
-     
+        except:
+            responses['total_persentase_distribusi'] = 0
+        
+        # Total Pendapatan
+        responses['total_pendapatan'] = get_total_pendapatan(db, 3, tahun, provinsi, unit_peternakan)
+        
+        # Harga Minimum
+        responses['harga_susu'] = {}
+        responses['harga_susu']['minimum'] = get_harga_minimum(db, 3, tahun, provinsi, unit_peternakan)
+        responses['harga_susu']['maximum'] = get_harga_maximum(db, 3, tahun, provinsi, unit_peternakan)
+        responses['harga_susu']['rata_rata'] = get_harga_rata_rata(db, 3, tahun, provinsi, unit_peternakan)
+        
+        # return responses
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=convert_decimals(responses)
+        )
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": str(e)}
+        )
+    
+    

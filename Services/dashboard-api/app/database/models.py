@@ -53,7 +53,7 @@ class FactDistribusi(Base):
     
     id_waktu = Column(Integer, primary_key=True)
     id_lokasi = Column(Integer, primary_key=True)
-    id_unit_peternak = Column(Integer, primary_key=True)
+    id_unit_peternakan = Column(Integer, primary_key=True)
     id_mitra_bisnis = Column(Integer, primary_key=True)
     id_jenis_produk = Column(Integer, primary_key=True)
     jumlah_distribusi = Column(Float)
@@ -71,7 +71,7 @@ class FactProduksi(Base):
     
     id_waktu = Column(Integer, primary_key=True)
     id_lokasi = Column(Integer, primary_key=True)
-    id_unit_peternak = Column(Integer, primary_key=True)
+    id_unit_peternakan = Column(Integer, primary_key=True)
     id_jenis_produk = Column(Integer, primary_key=True)
     id_sumber_pasokan = Column(Integer, primary_key=True)
     jumlah_produksi = Column(Float)
