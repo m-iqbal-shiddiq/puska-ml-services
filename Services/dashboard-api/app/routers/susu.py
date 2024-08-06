@@ -369,6 +369,9 @@ async def get_susu_data(db: Session = Depends(get_db),
     try:
         responses = {}
         
+        # Prediksi
+        responses['prediksi'] = [{}]
+        
         # Susu Segar
         responses['susu_segar'] = {}
         responses['susu_segar']['produksi'] = get_produksi_data(db, 3, tahun, provinsi, unit_peternakan)
