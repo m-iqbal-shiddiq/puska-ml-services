@@ -347,7 +347,10 @@ def get_harga_rata_rata(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
         db.query(func.avg(sub_query.c.harga_rata_rata).label('harga_rata_rata'))
     )
     
-    return round(query.scalar(), 2)
+    if query.scalar():
+        return round(query.scalar(), 2)
+    else:
+        return None
 
 def convert_decimals(obj):
     if isinstance(obj, dict):
@@ -497,11 +500,11 @@ async def get_susu_data(db: Session = Depends(get_db),
             status_code=status.HTTP_200_OK,
             content=convert_decimals(responses)
         )
-        
+    
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": str(e)}
-        )
-    
-    
+    )
+
+
