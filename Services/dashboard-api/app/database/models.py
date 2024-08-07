@@ -45,6 +45,20 @@ class DimMitraBisnis(Base):
     id_unit_peternak = Column(Integer)
     nama_mitra_bisnis = Column(String)
     kategori_mitra_bisnis = Column(String)
+    
+class PredSusu(Base):
+    
+    __tablename__ = 'pred_susu'
+    
+    id = Column(Integer, primary_key=True)
+    id_waktu = Column(Integer)
+    id_lokasi = Column(Integer)
+    id_unit_peternakan = Column(Integer)
+    prediction = Column(Float)
+    latency = Column(Float)
+    mape = Column(Float)
+    created_dt = Column(DateTime)
+    modified_dt = Column(DateTime)
 
 
 class FactDistribusi(Base):

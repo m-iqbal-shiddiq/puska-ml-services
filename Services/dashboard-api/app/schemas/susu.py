@@ -1,8 +1,12 @@
 from typing import Optional, List
 from pydantic import BaseModel
 
-# Entity
-# Sub Model
+
+class PrediksiValue(BaseModel):
+    label: str
+    actual: Optional[float]
+    predict: Optional[float]
+
 class SusuSegar(BaseModel):
     distribusi: int
     produksi: int
@@ -22,11 +26,6 @@ class Yogurt(BaseModel):
 class Keju(BaseModel):
     distribusi: int
     produksi: int
-
-class PrediksiValue(BaseModel):
-    label: str
-    actual: Optional[int]
-    predict: Optional[int]
 
 class PersentaseProduksi(BaseModel):
     susu_segar: float
@@ -72,5 +71,16 @@ class SusuKabupatenData(BaseModel):
 
 # Main Model
 class SusuMasterData(BaseModel):
-    year: Optional[int]
-    data: Optional[SusuKabupatenData]
+    susu_segar: SusuSegar
+    susu_pasteurisasi: SusuPasteurisasi
+    susu_kefir: SusuKefir
+    yogurt: Yogurt
+    keju: Keju
+    prediksi: List[PrediksiValue]
+    persentase_produksi: PersentaseProduksi
+    persentase_distribusi: PersentaseDistribusi
+    prod_dis_susu_segar: List[ProduksiDistribusiSusuSegar]
+    permintaan_susu_segar_dari_mitra_all: List[PermintaanSusuSegarPerMitra]
+    total_persentase_distribusi: float
+    total_pendapatan: int
+    harga_susu: HargaSusu

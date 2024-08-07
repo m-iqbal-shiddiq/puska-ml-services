@@ -9,7 +9,7 @@ from sqlalchemy import func, and_
 from sqlalchemy.orm import Session
 
 from app.database.connection import SessionLocal
-from app.database.models import DimLokasi, DimWaktu, DimMitraBisnis, FactDistribusi, FactProduksi, DimUnitPeternakan
+from app.database.models import DimLokasi, DimWaktu, DimMitraBisnis, FactDistribusi, FactProduksi, DimUnitPeternakan, PredSusu
 from app.schemas.susu import SusuMasterData
 
 from decimal import Decimal
@@ -352,6 +352,89 @@ def get_harga_rata_rata(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
     else:
         return None
 
+def get_prediksi_data(db, provinsi, unit_peternakan, days=7):
+    start_date = datetime.today() - timedelta(days=days)
+    # start_date = datetime.strptime("2023-01-01", "%Y-%m-%d")
+    end_date = datetime.today() + timedelta(days=1)
+    # end_date = start_date + timedelta(days=days)
+    
+    sub_query_produksi = (
+        db.query(DimWaktu.tanggal,
+                 DimLokasi.provinsi,
+                 DimUnitPeternakan.nama_unit,
+                 FactProduksi.jumlah_produksi)
+        .join(DimWaktu, DimWaktu.id == FactProduksi.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactProduksi.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == FactProduksi.id_unit_peternakan)
+        .where(DimWaktu.tanggal >= start_date)
+        .where(DimWaktu.tanggal < end_date)
+    )
+    
+    if provinsi:
+        sub_query_produksi = sub_query_produksi.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        sub_query_produksi = sub_query_produksi.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+    
+    sub_query_produksi = sub_query_produksi.subquery()
+    
+    query = (
+        db.query(sub_query_produksi.c.tanggal,
+                 func.sum(sub_query_produksi.c.jumlah_produksi).label('total_produksi'))
+        .group_by(sub_query_produksi.c.tanggal)
+        .order_by(sub_query_produksi.c.tanggal)
+    )
+    
+    produksi_dict = {item[0].strftime('%d-%m-%Y'): int(item[1]) for item in query.all()}
+    all_dates = {(start_date + timedelta(days=i)).strftime('%d-%m-%Y') for i in range((end_date - start_date).days)}
+    produksi_complete_data = {date: produksi_dict.get(date, 0) for date in all_dates}
+    produksi_complete_data[end_date.strftime('%d-%m-%Y')] = None
+    produksi_sorted_data = sorted(produksi_complete_data.items(), key=lambda x: datetime.strptime(x[0], '%d-%m-%Y'))
+    produksi_result_dict = dict(produksi_sorted_data)
+    
+    sub_query_prediksi = (
+        db.query(DimWaktu.tanggal,
+                 DimLokasi.provinsi,
+                 DimUnitPeternakan.nama_unit,
+                 PredSusu.prediction)
+        .join(DimWaktu, DimWaktu.id == PredSusu.id_waktu)
+        .join(DimLokasi, DimLokasi.id == PredSusu.id_lokasi)
+        .join(DimUnitPeternakan, DimUnitPeternakan.id == PredSusu.id_unit_peternakan)
+        .where(DimWaktu.tanggal >= start_date)
+        .where(DimWaktu.tanggal <= end_date)
+    )
+    
+    if provinsi:
+        sub_query_prediksi = sub_query_prediksi.where(DimLokasi.provinsi == provinsi)
+    if unit_peternakan:
+        sub_query_prediksi = sub_query_prediksi.where(DimUnitPeternakan.nama_unit == unit_peternakan)
+        
+    sub_query_prediksi = sub_query_prediksi.subquery()
+    
+    query = (
+        db.query(sub_query_prediksi.c.tanggal,
+                 sub_query_prediksi.c.prediction)
+        .order_by(sub_query_prediksi.c.tanggal)
+    )
+    
+    prediksi_dict = {item[0].strftime('%d-%m-%Y'): int(item[1]) for item in query.all()}
+    all_dates = {(start_date + timedelta(days=i)).strftime('%d-%m-%Y') for i in range((end_date - start_date).days + 1)}
+    prediksi_complete_data = {date: prediksi_dict.get(date, 0) for date in all_dates}
+    prediksi_sorted_data = sorted(prediksi_complete_data.items(), key=lambda x: datetime.strptime(x[0], '%d-%m-%Y'))
+    prediksi_result_dict = dict(prediksi_sorted_data)
+    
+    data_result = []
+    for key in produksi_result_dict.keys():
+        data_result.append({
+            'label': key,
+            'actual': produksi_result_dict[key],
+            'predict': prediksi_result_dict[key]
+        })
+        
+    return data_result
+    
+    
+    
+    
 def convert_decimals(obj):
     if isinstance(obj, dict):
         return {k: convert_decimals(v) for k, v in obj.items()}
@@ -363,7 +446,9 @@ def convert_decimals(obj):
         return obj
 
 
-@router.get(path='/susu')
+@router.get(path='/susu',
+            response_model=SusuMasterData, 
+            status_code=status.HTTP_200_OK)
 async def get_susu_data(db: Session = Depends(get_db),
                         tahun: int | None = None,
                         provinsi: str | None = None,
@@ -371,9 +456,6 @@ async def get_susu_data(db: Session = Depends(get_db),
     
     try:
         responses = {}
-        
-        # Prediksi
-        responses['prediksi'] = [{}]
         
         # Susu Segar
         responses['susu_segar'] = {}
@@ -399,6 +481,9 @@ async def get_susu_data(db: Session = Depends(get_db),
         responses['keju'] = {}
         responses['keju']['produksi'] = get_produksi_data(db, 7, tahun, provinsi, unit_peternakan)
         responses['keju']['distribusi'] = get_distribusi_data(db, 7, tahun, provinsi, unit_peternakan)
+        
+        # Prediksi
+        responses['prediksi'] = get_prediksi_data(db, provinsi, unit_peternakan)
         
         # Persentase Produksi
         total_produksi = (
@@ -443,30 +528,32 @@ async def get_susu_data(db: Session = Depends(get_db),
             responses['persentase_distribusi']['yogurt'] = round((responses['yogurt']['distribusi'] or 0) / total_distribusi, 2)
             
         # Produksi dan Distribusi Susu Segar
-        responses['prod_dis_susu_segar'] = {}
+        responses['prod_dis_susu_segar'] = []
         
         if tahun:
             produksi = get_produksi_series_by_year(db, 3, tahun, provinsi, unit_peternakan)
             distribusi = get_distribusi_series_by_year(db, 3, tahun, provinsi, unit_peternakan)
-
-            responses['prod_dis_susu_segar']['label'] = list(produksi.keys())
-            responses['prod_dis_susu_segar']['produksi'] = list(produksi.values())
-            responses['prod_dis_susu_segar']['distribusi'] = list(distribusi.values())
         else:
             produksi = get_produksi_series_by_interval(db, 3, provinsi, unit_peternakan)
-            distribusi = get_distribusi_series_by_interval(db, 3, provinsi, unit_peternakan)
-            
-            responses['prod_dis_susu_segar']['label'] = list(produksi.keys())
-            responses['prod_dis_susu_segar']['produksi'] = list(produksi.values())
-            responses['prod_dis_susu_segar']['distribusi'] = list(distribusi.values())
+            distribusi = get_distribusi_series_by_interval(db, 3, provinsi, unit_peternakan)            
+
+        for key in produksi.keys():
+            responses['prod_dis_susu_segar'].append({
+                'label': key,
+                'produksi': produksi[key],
+                'distribusi': distribusi[key]
+            })
         
         # Permintaan Susu Segar dari Mitra Bisnis
-        responses['permintaan_susu_segar_dari_mitra_all'] = {}
+        responses['permintaan_susu_segar_dari_mitra_all'] = []
         
         mitra_bisnis = get_permintaan_susu_segar_dari_mitra(db, 3, tahun, provinsi, unit_peternakan)
         
-        responses['permintaan_susu_segar_dari_mitra_all']['label'] = list(mitra_bisnis.keys())
-        responses['permintaan_susu_segar_dari_mitra_all']['value'] = list(mitra_bisnis.values())
+        for key in mitra_bisnis:
+            responses['permintaan_susu_segar_dari_mitra_all'].append({
+                'label': key,
+                'value': mitra_bisnis[key]
+            })
         
         # Total Persentase Distribusi
         try:

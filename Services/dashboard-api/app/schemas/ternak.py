@@ -2,8 +2,6 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
-# Entity
-# Sub Model
 class TernakPotong(BaseModel):
     total_produksi: int
     total_distribusi: int
@@ -35,35 +33,39 @@ class ProduksiDistribusiSusuSegar(BaseModel):
     distribusi: int
 
 class SebaranPopulasi(BaseModel):
-    region: Optional[str] #TODO: Revision (#1)
+    region: Optional[str]
     title: str
     populasi: int
 
-class SebaranPopulasiYearly(BaseModel):
-    year: int
-    sebaran_populasi: List[SebaranPopulasi]
+# Ini harusnya apa ya?
 
-class JumlahPerahDewasa(BaseModel):
-    produksi: float
-    distribusi: float
+# class JumlahPerahDewasa(BaseModel):
+#     produksi: float 
+#     distribusi: float
 
-class JumlahPerahAnakan(BaseModel):
-    produksi: float
-    distribusi: float
+# class JumlahPerahAnakan(BaseModel):
+#     produksi: float 
+#     distribusi: float
 
-class JumlahPedagingDewasa(BaseModel):
-    produksi: float
-    distribusi: float
+# class JumlahPedagingDewasa(BaseModel):
+#     produksi: float 
+#     distribusi: float
 
-class JumlahPedagingAnakan(BaseModel):
-    produksi: float
-    distribusi: float
+# class JumlahPedagingAnakan(BaseModel):
+#     produksi: float 
+#     distribusi: float
 
-class RingkasanPopulasi(BaseModel):
-    jumlah_perah_dewasa: JumlahPerahDewasa
-    jumlah_perah_anakan: JumlahPerahAnakan
-    jumlah_pedaging_dewasa: JumlahPedagingDewasa
-    jumlah_pedaging_anakan: JumlahPedagingAnakan
+# class RingkasanPopulasi(BaseModel): 
+#     jumlah_perah_dewasa: JumlahPerahDewasa
+#     jumlah_perah_anakan: JumlahPerahAnakan
+#     jumlah_pedaging_dewasa: JumlahPedagingDewasa
+#     jumlah_pedaging_anakan: JumlahPedagingAnakan
+    
+class RingkasanPopulasi(BaseModel): 
+    jumlah_perah_dewasa: int
+    jumlah_perah_anakan: int
+    jumlah_pedaging_dewasa: int
+    jumlah_pedaging_anakan: int
 
 class TablePopulasi(BaseModel):
     wilayah: str
@@ -85,43 +87,8 @@ class TernakMasterData(BaseModel):
     pro_dis_ternak_potong: List[ProduksiDistribusiTernakPotong]
     pro_dis_daging_ternak: List[ProduksiDistribusiDagingTernak]
     pro_dis_susu_segar: List[ProduksiDistribusiSusuSegar]
-    sebaran_populasi_all: List[SebaranPopulasiYearly]
+    sebaran_populasi_all: List[SebaranPopulasi]
     ringkasan_populasi: RingkasanPopulasi
     table: List[TablePopulasi]
-
-"""
-"sebaran_populasi_all": [
-    {
-        "year": 2023,
-        "sebaran_populasi": [
-            {
-                "region": str,
-                "label": str,
-                "populasi: int,
-            },
-            {
-                "region": str,
-                "label": str,
-                "populasi: int,
-            }
-        ]
-    },
-    {
-        "year": 2024,
-        "sebaran_populasi": [
-            {
-                "region": str,
-                "label": str,
-                "populasi: int,
-            },
-            {
-                "region": str,
-                "label": str,
-                "populasi: int,
-            }
-        ]
-    }
-]
-"""
-
-
+    
+    
