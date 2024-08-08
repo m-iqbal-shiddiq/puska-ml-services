@@ -430,10 +430,7 @@ def get_prediksi_data(db, provinsi, unit_peternakan, days=7):
             'predict': prediksi_result_dict[key]
         })
         
-    return data_result
-    
-    
-    
+    return data_result  
     
 def convert_decimals(obj):
     if isinstance(obj, dict):

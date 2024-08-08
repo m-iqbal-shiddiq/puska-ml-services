@@ -316,32 +316,32 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None):
         
         if provinsi:
             if kabupaten_kota:
-                data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'perah', 'jantan', 'dewasa')
-                data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'perah', 'betina', 'dewasa')
-                data['perah_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'perah', 'jantan', 'anakan')
-                data['perah_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'perah', 'betina', 'anakan')
-                data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'pedaging', 'jantan', 'dewasa')
-                data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'pedaging', 'betina', 'dewasa')
-                data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'pedaging', 'jantan', 'anakan')
-                data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'pedaging', 'betina', 'anakan')
+                data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Jantan', 'Dewasa')
+                data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Betina', 'Dewasa')
+                data['perah_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Jantan', 'Anakan')
+                data['perah_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Betina', 'Anakan')
+                data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Jantan', 'Dewasa')
+                data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Betina', 'Dewasa')
+                data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Jantan', 'Anakan')
+                data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Betina', 'Anakan')
             else:
-                data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'perah', 'jantan', 'dewasa')
-                data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'perah', 'betina', 'dewasa')
-                data['perah_anakan_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'perah', 'jantan', 'anakan')
-                data['perah_anakan_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'perah', 'betina', 'anakan')
-                data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'pedaging', 'jantan', 'dewasa')
-                data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'pedaging', 'betina', 'dewasa')
-                data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'pedaging', 'jantan', 'anakan')
-                data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'pedaging', 'betina', 'anakan')
+                data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Jantan', 'Dewasa')
+                data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Betina', 'Dewasa')
+                data['perah_anakan_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Jantan', 'Anakan')
+                data['perah_anakan_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Betina', 'Anakan')
+                data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Jantan', 'Dewasa')
+                data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Betina', 'Dewasa')
+                data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Jantan', 'Anakan')
+                data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Betina', 'Anakan')
         else:
-            data['perah_dewasa_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'perah', 'jantan', 'dewasa')
-            data['perah_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'perah', 'betina', 'dewasa')
-            data['perah_anakan_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'perah', 'jantan', 'anakan')
-            data['perah_anakan_betina'] = get_table_data(db, tahun, wilayah, None, None, 'perah', 'betina', 'anakan')
-            data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'pedaging', 'jantan', 'dewasa')
-            data['pedaging_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'pedaging', 'betina', 'dewasa')
-            data['pedaging_anakan_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'pedaging', 'jantan', 'anakan')
-            data['pedaging_anakan_betina'] = get_table_data(db, tahun, wilayah, None, None, 'pedaging', 'betina', 'anakan')
+            data['perah_dewasa_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Jantan', 'Dewasa')
+            data['perah_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Betina', 'Dewasa')
+            data['perah_anakan_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Jantan', 'Anakan')
+            data['perah_anakan_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Betina', 'Anakan')
+            data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Jantan', 'Dewasa')
+            data['pedaging_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Betina', 'Dewasa')
+            data['pedaging_anakan_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Jantan', 'Anakan')
+            data['pedaging_anakan_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Betina', 'Anakan')
             
         table_populasi.append(data)
         
@@ -460,10 +460,10 @@ async def get_ternak_data(db: Session = Depends(get_db),
         
         # Ringkasan Populasi
         responses['ringkasan_populasi'] = {}
-        responses['ringkasan_populasi']['jumlah_perah_dewasa'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'perah', jantan_betina, 'dewasa')
-        responses['ringkasan_populasi']['jumlah_perah_anakan'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'perah', jantan_betina, 'anakan')
-        responses['ringkasan_populasi']['jumlah_pedaging_dewasa'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'pedaging', jantan_betina, 'dewasa')
-        responses['ringkasan_populasi']['jumlah_pedaging_anakan'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'pedaging', jantan_betina, 'anakan')
+        responses['ringkasan_populasi']['jumlah_perah_dewasa'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'Perah', jantan_betina, 'Dewasa')
+        responses['ringkasan_populasi']['jumlah_perah_anakan'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'Perah', jantan_betina, 'Anakan')
+        responses['ringkasan_populasi']['jumlah_pedaging_dewasa'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'Pedaging', jantan_betina, 'Dewasa')
+        responses['ringkasan_populasi']['jumlah_pedaging_anakan'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'Pedaging', jantan_betina, 'Anakan')
         
         # Table Populasi
         responses['table'] = get_table(db, tahun, provinsi, kabupaten_kota)
