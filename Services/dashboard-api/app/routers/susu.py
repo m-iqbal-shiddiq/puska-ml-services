@@ -48,8 +48,12 @@ def get_produksi_data(db, id_jenis_produk: int, tahun: int, provinsi: str, unit_
         func.sum(prod_subquery.c.jumlah_produksi).label('total_produksi')
     )
     
-    return query.scalar()
-
+    result = query.scalar()
+    if result:
+        return result
+    else:
+        return 0
+    
 def get_distribusi_data(db, id_jenis_produk: int, tahun: int, provinsi: str, unit_peternakan: str):
     dis_subquery = (
         db.query(DimWaktu.tahun,
@@ -74,7 +78,12 @@ def get_distribusi_data(db, id_jenis_produk: int, tahun: int, provinsi: str, uni
         func.sum(dis_subquery.c.jumlah_distribusi).label('total_distribusi')
     )
     
-    return query.scalar()
+    result = query.scalar()
+    
+    if result:
+        return result
+    else:
+        return 0
  
 def get_produksi_series_by_interval(db, id_jenis_produk:int, provinsi: str, unit_peternakan: str, days=365):
     start_date = datetime.today() - timedelta(days=days)
