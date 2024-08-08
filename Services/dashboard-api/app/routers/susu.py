@@ -308,7 +308,12 @@ def get_harga_minimum(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
         db.query(func.min(sub_query.c.harga_minimum).label('harga_minimum'))
     )
     
-    return query.scalar()
+    result = query.scalar()
+    
+    if result:
+        return result
+    else:
+        return 0
 
 def get_harga_maximum(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
     sub_query = (
@@ -332,7 +337,12 @@ def get_harga_maximum(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
         db.query(func.max(sub_query.c.harga_maximum).label('harga_maximum'))
     )
     
-    return query.scalar()
+    result = query.scalar()
+    
+    if result:
+        return result
+    else:
+        return 0
 
 def get_harga_rata_rata(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
     sub_query = (
@@ -356,10 +366,12 @@ def get_harga_rata_rata(db, id_jenis_produk, tahun, provinsi, unit_peternakan):
         db.query(func.avg(sub_query.c.harga_rata_rata).label('harga_rata_rata'))
     )
     
-    if query.scalar():
-        return round(query.scalar(), 2)
+    result = query.scalar()
+    
+    if result:
+        return round(result, 2)
     else:
-        return None
+        return 0
 
 def get_prediksi_data(db, provinsi, unit_peternakan, days=7):
     start_date = datetime.today() - timedelta(days=days)
