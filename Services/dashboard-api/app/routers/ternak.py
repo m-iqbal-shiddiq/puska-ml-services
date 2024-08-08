@@ -29,14 +29,26 @@ def get_produksi_data(db, id_jenis_produk):
         db.query(func.sum(FactProduksi.jumlah_produksi))
         .where(FactProduksi.id_jenis_produk == id_jenis_produk)
     )
-    return query.scalar()
+    
+    result = query.scalar()
+    
+    if result:
+        return result
+    else:
+        return 0
 
 def get_distribusi_data(db, id_jenis_produk):
     query = (
         db.query(func.sum(FactDistribusi.jumlah_distribusi))
         .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
     )
-    return query.scalar()
+    
+    result = query.scalar()
+    
+    if result:
+        return result
+    else:
+        return 0
 
 def get_produksi_series_by_interval(db, id_jenis_produk:int, days=365):
     start_date = datetime.today() - timedelta(days=days)
