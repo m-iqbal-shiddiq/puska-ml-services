@@ -14,7 +14,7 @@ def get_db():
     finally:
         db.close()
         
-@router.get('/test', status_code=status.HTTP_200_OK)
+@router.get('/filter', status_code=status.HTTP_200_OK)
 async def get_filter_data(db = Depends(get_db)):
     responses = {}
     
