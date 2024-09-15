@@ -147,7 +147,7 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
             
             query_str = text(
                 """
-                    SELECT ST_AsText(ST_Centroid(region))
+                    SELECT region
                     FROM dim_lokasi
                     WHERE
                         provinsi = :provinsi AND
@@ -164,7 +164,7 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
             
             query_str = text(
                 """
-                    SELECT ST_AsText(ST_Centroid(region))
+                    SELECT region
                     FROM dim_lokasi
                     WHERE
                         provinsi = :provinsi AND
@@ -181,7 +181,7 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
         
         query_str = text(
             """
-                SELECT ST_AsText(ST_Centroid(region))
+                SELECT region
                 FROM dim_lokasi
                 WHERE
                     provinsi = :provinsi AND
