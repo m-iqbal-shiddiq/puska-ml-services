@@ -1,3 +1,5 @@
+import sys
+import json
 import datetime as dt
 
 from datetime import datetime, timedelta
@@ -147,7 +149,7 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
             
             query_str = text(
                 """
-                    SELECT region
+                    SELECT ST_AsText(region_simp)
                     FROM dim_lokasi
                     WHERE
                         provinsi = :provinsi AND
@@ -164,7 +166,7 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
             
             query_str = text(
                 """
-                    SELECT region
+                    SELECT ST_AsText(region_simp)
                     FROM dim_lokasi
                     WHERE
                         provinsi = :provinsi AND
@@ -181,7 +183,7 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
         
         query_str = text(
             """
-                SELECT region
+                SELECT ST_AsText(region_simp)
                 FROM dim_lokasi
                 WHERE
                     provinsi = :provinsi AND
@@ -429,8 +431,8 @@ async def get_ternak_data(db: Session = Depends(get_db),
             responses['susu_segar']['persentase'] = 0
             
         # Produksi dan Distribusi Ternak Potong
-        produksi = get_produksi_series_by_interval(db, 2)
-        distribusi = get_distribusi_series_by_interval(db, 2)
+        produksi = get_produksi_series_by_interval(db, 2, days=30)
+        distribusi = get_distribusi_series_by_interval(db, 2, days=30)
         pro_dis_ternak_potong_list = []
         for i in range(len(produksi)):
             pro_dis_ternak_potong_list.append({
@@ -442,8 +444,8 @@ async def get_ternak_data(db: Session = Depends(get_db),
         responses['pro_dis_ternak_potong'] = pro_dis_ternak_potong_list
         
         # Produksi dan Distribusi Daging Ternak
-        produksi = get_produksi_series_by_interval(db, 1)
-        distribusi = get_distribusi_series_by_interval(db, 1)
+        produksi = get_produksi_series_by_interval(db, 1, days=30)
+        distribusi = get_distribusi_series_by_interval(db, 1, days=30)
         pro_dis_daging_ternak_list = []
         for i in range(len(produksi)):
             pro_dis_daging_ternak_list.append({
@@ -455,8 +457,8 @@ async def get_ternak_data(db: Session = Depends(get_db),
         responses['pro_dis_daging_ternak'] = pro_dis_daging_ternak_list
         
         # Produksi dan Distribusi Susu Segar
-        produksi = get_produksi_series_by_interval(db, 3)
-        distribusi = get_distribusi_series_by_interval(db, 3)
+        produksi = get_produksi_series_by_interval(db, 3, days=30)
+        distribusi = get_distribusi_series_by_interval(db, 3, days=30)
         pro_dis_susu_segar_list = []
         for i in range(len(produksi)):
             pro_dis_susu_segar_list.append({
@@ -466,10 +468,10 @@ async def get_ternak_data(db: Session = Depends(get_db),
             })
             
         responses['pro_dis_susu_segar'] = pro_dis_susu_segar_list
-        
+ 
         # Sebaran Populasi
         responses['sebaran_populasi_all'] = get_sebaran_populasi_all(db, tahun, provinsi, kabupaten_kota, perah_pedaging, jantan_betina, dewasa_anakan)
-        
+       
         # Ringkasan Populasi
         responses['ringkasan_populasi'] = {}
         responses['ringkasan_populasi']['jumlah_perah_dewasa'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'Perah', jantan_betina, 'Dewasa')
