@@ -78,7 +78,6 @@ class FactDistribusi(Base):
     created_dt = Column(DateTime)
     modified_dt = Column(DateTime)
     
-    
 class FactProduksi(Base):
     
     __tablename__ = 'fact_produksi'
@@ -109,4 +108,51 @@ class FactPopulasi(Base):
     jumlah = Column(Integer)
     created_dt = Column(DateTime)
     modified_dt = Column(DateTime)
+
+class FactDistribusiStream(Base):
+        
+    __tablename__ = 'fact_distribusi_stream'
     
+    id_waktu = Column(Integer, primary_key=True)
+    id_lokasi = Column(Integer, primary_key=True)
+    id_unit_peternakan = Column(Integer, primary_key=True)
+    id_mitra_bisnis = Column(Integer, primary_key=True)
+    id_jenis_produk = Column(Integer, primary_key=True)
+    jumlah_distribusi = Column(Float)
+    harga_minimum = Column(Float)
+    harga_maximum = Column(Float)
+    harga_rata_rata = Column(Float)
+    jumlah_penjualan = Column(Float)
+    created_dt = Column(DateTime)
+    modified_dt = Column(DateTime)
+    
+class FactProduksiStream(Base):
+        
+    __tablename__ = 'fact_produksi_stream'
+    
+    id_waktu = Column(Integer, primary_key=True)
+    id_lokasi = Column(Integer, primary_key=True)
+    id_unit_peternakan = Column(Integer, primary_key=True)
+    id_jenis_produk = Column(Integer, primary_key=True)
+    id_sumber_pasokan = Column(Integer, primary_key=True)
+    jumlah_produksi = Column(Float)
+    created_dt = Column(DateTime)
+    modified_dt = Column(DateTime)
+    
+class FactPopulasiStream(Base):
+            
+        __tablename__ = 'fact_populasi_stream'
+        
+        id_waktu = Column(Integer, primary_key=True)
+        id_lokasi = Column(Integer, primary_key=True)
+        id_peternakan = Column(Integer, primary_key=True)
+        jenis_kelamin = Column(String)
+        tipe_ternak = Column(String)
+        tipe_usia = Column(String)
+        jumlah_lahir = Column(Integer)
+        jumlah_mati = Column(Integer)
+        jumlah_masuk = Column(Integer)
+        jumlah_keluar = Column(Integer)
+        jumlah = Column(Integer)
+        created_dt = Column(DateTime)
+        modified_dt = Column(DateTime)

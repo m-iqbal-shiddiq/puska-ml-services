@@ -56,8 +56,8 @@ def preprocess_data():
                 avg = round(temp_df['jumlah_produksi'].mean(), 2)
                 data_df.loc[index, 'jumlah_produksi'] = avg
         
-        if data_df['id_unit_ternak'].unique().tolist()[0] == 0:
-            data_df['id_unit_ternak'] = None 
+        if data_df['id_unit_peternakan'].unique().tolist()[0] == 0:
+            data_df['id_unit_peternakan'] = None 
                 
         data_df.to_csv(os.path.join(CLEANED_PATH, filename), index=False)
 

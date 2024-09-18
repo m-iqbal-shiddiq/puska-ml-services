@@ -11,7 +11,7 @@ from sqlalchemy import func, and_, text
 from sqlalchemy.orm import Session
 
 from app.database.connection import SessionLocal
-from app.database.models import DimLokasi, DimWaktu, FactDistribusi, FactProduksi, FactPopulasi
+from app.database.models import DimLokasi, DimWaktu, FactDistribusi, FactDistribusiStream, FactProduksi, FactProduksiStream, FactPopulasi, FactPopulasiStream
 from app.schemas.ternak import TernakMasterData
 
 from decimal import Decimal
@@ -27,12 +27,21 @@ def get_db():
 
 
 def get_produksi_data(db, id_jenis_produk):
+    
     query = (
-        db.query(func.sum(FactProduksi.jumlah_produksi))
-        .where(FactProduksi.id_jenis_produk == id_jenis_produk)
+        db.query(func.sum(FactProduksiStream.jumlah_produksi))
+        .where(FactProduksiStream.id_jenis_produk == id_jenis_produk)
     )
     
     result = query.scalar()
+    
+    if result is None:
+        query = (
+            db.query(func.sum(FactProduksi.jumlah_produksi))
+            .where(FactProduksi.id_jenis_produk == id_jenis_produk)
+        )
+        
+        result = query.scalar()
     
     if result:
         return result
@@ -40,12 +49,21 @@ def get_produksi_data(db, id_jenis_produk):
         return 0
 
 def get_distribusi_data(db, id_jenis_produk):
+    
     query = (
-        db.query(func.sum(FactDistribusi.jumlah_distribusi))
-        .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+        db.query(func.sum(FactDistribusiStream.jumlah_distribusi))
+        .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
     
     result = query.scalar()
+    
+    if result is None:
+        query = (
+            db.query(func.sum(FactDistribusi.jumlah_distribusi))
+            .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+        )
+        
+        result = query.scalar()
     
     if result:
         return result
@@ -58,39 +76,65 @@ def get_produksi_series_by_interval(db, id_jenis_produk:int, days=365):
     
     sub_query = (
         db.query(DimWaktu.tanggal,
-                 FactProduksi.jumlah_produksi)
-        .join(DimWaktu, DimWaktu.id == FactProduksi.id_waktu)
+                 FactProduksiStream.jumlah_produksi)
+        .join(DimWaktu, DimWaktu.id == FactProduksiStream.id_waktu)
         .where(DimWaktu.tanggal >= start_date)
-        .where(FactProduksi.id_jenis_produk == id_jenis_produk)
+        .where(FactProduksiStream.id_jenis_produk == id_jenis_produk)
     )
     
     sub_query = sub_query.subquery()
     
     query = (
         db.query(sub_query.c.tanggal,
-                 func.sum(sub_query.c.jumlah_produksi).label('total_distribusi'))
+                 func.sum(sub_query.c.jumlah_produksi).label('total_produksi'))
         .group_by(sub_query.c.tanggal)
         .order_by(sub_query.c.tanggal)
     )
     
-    data_dict = {item[0].strftime('%d-%m-%Y'): int(item[1]) for item in query.all()}
+    data_dict = {item[0].strftime('%d-%m-%Y'): float(item[1]) for item in query.all()}
     all_dates = {(start_date + timedelta(days=i)).strftime('%d-%m-%Y') for i in range((end_date - start_date).days)}
+    
+    not_found_dates = all_dates - set(data_dict.keys())
+    not_found_dates = sorted(list(not_found_dates), key=lambda x: datetime.strptime(x, '%d-%m-%Y'))
+    not_found_dates = [datetime.strptime(date, '%d-%m-%Y').date() for date in not_found_dates]
+    
+    if len(not_found_dates) > 0:
+        sub_query = (
+            db.query(DimWaktu.tanggal,
+                    FactProduksi.jumlah_produksi)
+            .join(DimWaktu, DimWaktu.id == FactProduksi.id_waktu)
+            .where(DimWaktu.tanggal.in_(not_found_dates))
+            .where(FactProduksi.id_jenis_produk == id_jenis_produk)
+        )
+        
+        sub_query = sub_query.subquery()
+    
+        query = (
+            db.query(sub_query.c.tanggal,
+                    func.sum(sub_query.c.jumlah_produksi).label('total_distribusi'))
+            .group_by(sub_query.c.tanggal)
+            .order_by(sub_query.c.tanggal)
+        )
+        
+        found_data_dict = {item[0].strftime('%d-%m-%Y'): float(item[1]) for item in query.all()}
+        data_dict = {**data_dict, **found_data_dict}
+        
     complete_data = {date: data_dict.get(date, 0) for date in all_dates}
     sorted_data = sorted(complete_data.items(), key=lambda x: datetime.strptime(x[0], '%d-%m-%Y'))
     sorted_data_dict = dict(sorted_data)
     
     return sorted_data_dict
-
+        
 def get_distribusi_series_by_interval(db, id_jenis_produk:int, days=365):
     start_date = datetime.today() - timedelta(days=days)
     end_date = datetime.today()
     
     sub_query = (
         db.query(DimWaktu.tanggal,
-                 FactDistribusi.jumlah_distribusi)
-        .join(DimWaktu, DimWaktu.id == FactDistribusi.id_waktu)
+                 FactDistribusiStream.jumlah_distribusi)
+        .join(DimWaktu, DimWaktu.id == FactDistribusiStream.id_waktu)
         .where(DimWaktu.tanggal >= start_date)
-        .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+        .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
     
     sub_query = sub_query.subquery()
@@ -102,8 +146,34 @@ def get_distribusi_series_by_interval(db, id_jenis_produk:int, days=365):
         .order_by(sub_query.c.tanggal)
     )
     
-    data_dict = {item[0].strftime('%d-%m-%Y'): int(item[1]) for item in query.all()}
+    data_dict = {item[0].strftime('%d-%m-%Y'): float(item[1]) for item in query.all()}
     all_dates = {(start_date + timedelta(days=i)).strftime('%d-%m-%Y') for i in range((end_date - start_date).days)}
+    
+    not_found_dates = all_dates - set(data_dict.keys())
+    not_found_dates = sorted(list(not_found_dates), key=lambda x: datetime.strptime(x, '%d-%m-%Y'))
+    not_found_dates = [datetime.strptime(date, '%d-%m-%Y').date() for date in not_found_dates]
+    
+    if len(not_found_dates) > 0:
+        sub_query = (
+            db.query(DimWaktu.tanggal,
+                    FactDistribusi.jumlah_distribusi)
+            .join(DimWaktu, DimWaktu.id == FactDistribusi.id_waktu)
+            .where(DimWaktu.tanggal.in_(not_found_dates))
+            .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
+        )
+        
+        sub_query = sub_query.subquery()
+    
+        query = (
+            db.query(sub_query.c.tanggal,
+                    func.sum(sub_query.c.jumlah_distribusi).label('total_distribusi'))
+            .group_by(sub_query.c.tanggal)
+            .order_by(sub_query.c.tanggal)
+        )
+        
+        found_data_dict = {item[0].strftime('%d-%m-%Y'): float(item[1]) for item in query.all()}
+        data_dict = {**data_dict, **found_data_dict}
+        
     complete_data = {date: data_dict.get(date, 0) for date in all_dates}
     sorted_data = sorted(complete_data.items(), key=lambda x: datetime.strptime(x[0], '%d-%m-%Y'))
     sorted_data_dict = dict(sorted_data)
@@ -116,12 +186,12 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
                  DimLokasi.provinsi,
                  DimLokasi.kabupaten_kota,
                  DimLokasi.kecamatan,
-                 FactPopulasi.tipe_ternak,
-                 FactPopulasi.jenis_kelamin,
-                 FactPopulasi.tipe_usia,
-                 FactPopulasi.jumlah)
-        .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
-        .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+                 FactPopulasiStream.tipe_ternak,
+                 FactPopulasiStream.jenis_kelamin,
+                 FactPopulasiStream.tipe_usia,
+                 FactPopulasiStream.jumlah)
+        .join(DimWaktu, DimWaktu.id == FactPopulasiStream.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactPopulasiStream.id_lokasi)
     )
     
     if tahun:
@@ -131,11 +201,11 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
     if kabupaten_kota:
         sub_query = sub_query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
     if perah_pedaging:
-        sub_query = sub_query.where(FactPopulasi.tipe_ternak == perah_pedaging)
+        sub_query = sub_query.where(FactPopulasiStream.tipe_ternak == perah_pedaging)
     if jantan_betina:
-        sub_query = sub_query.where(FactPopulasi.jenis_kelamin == jantan_betina)
+        sub_query = sub_query.where(FactPopulasiStream.jenis_kelamin == jantan_betina)
     if dewasa_anakan:
-        sub_query = sub_query.where(FactPopulasi.tipe_usia == dewasa_anakan)
+        sub_query = sub_query.where(FactPopulasiStream.tipe_usia == dewasa_anakan)
         
     sub_query = sub_query.subquery()
     
@@ -157,6 +227,14 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
                         kecamatan = :kecamatan
                 """
             )
+            
+            locations = (
+                db.query(DimLokasi.kecamatan)
+                .where(DimLokasi.provinsi == provinsi)
+                .where(DimLokasi.kabupaten_kota == kabupaten_kota)
+                .distinct()
+            ).all()
+            
         else:
             query = (
                 db.query(sub_query.c.kabupaten_kota,
@@ -174,6 +252,13 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
                         kecamatan IS NULL
                 """
             )
+            
+            locations = (
+                db.query(DimLokasi.kabupaten_kota)
+                .where(DimLokasi.provinsi == provinsi)
+                .distinct()
+            ).all()
+            
     else:
         query = (
             db.query(sub_query.c.provinsi,
@@ -191,9 +276,72 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
                     kecamatan IS NULL
             """
         )
-    
+        
+        locations = (
+            db.query(DimLokasi.provinsi)
+            .distinct()
+        ).all()
+        
     data_dict = {item[0]: int(item[1]) for item in query.all()}
+    locations = [item[0] for item in locations if item[0] is not None]
     
+    not_found_locations = set(locations) - set(data_dict.keys())
+    
+    if len(not_found_locations) > 0:
+        sub_query = (
+            db.query(DimWaktu.tahun,
+                    DimLokasi.provinsi,
+                    DimLokasi.kabupaten_kota,
+                    DimLokasi.kecamatan,
+                    FactPopulasi.tipe_ternak,
+                    FactPopulasi.jenis_kelamin,
+                    FactPopulasi.tipe_usia,
+                    FactPopulasi.jumlah)
+            .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
+            .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+        )
+        
+        if tahun:
+            sub_query = sub_query.where(DimWaktu.tahun == tahun)
+        if provinsi:
+            sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+        if kabupaten_kota:
+            sub_query = sub_query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
+        if perah_pedaging:
+            sub_query = sub_query.where(FactPopulasi.tipe_ternak == perah_pedaging)
+        if jantan_betina:
+            sub_query = sub_query.where(FactPopulasi.jenis_kelamin == jantan_betina)
+        if dewasa_anakan:
+            sub_query = sub_query.where(FactPopulasi.tipe_usia == dewasa_anakan)
+            
+        sub_query = sub_query.subquery()
+        
+        if provinsi:
+            if kabupaten_kota:
+                query = (
+                    db.query(sub_query.c.kecamatan,
+                             func.sum(sub_query.c.jumlah).label('total_populasi'))
+                    .where(sub_query.c.kecamatan.in_(not_found_locations))
+                    .group_by(sub_query.c.kecamatan)
+                )
+            else:
+                query = (
+                    db.query(sub_query.c.kabupaten_kota,
+                             func.sum(sub_query.c.jumlah).label('total_populasi'))
+                    .where(sub_query.c.kabupaten_kota.in_(not_found_locations))
+                    .group_by(sub_query.c.kabupaten_kota)
+                )
+        else:
+            query = (
+                db.query(sub_query.c.provinsi,
+                         func.sum(sub_query.c.jumlah).label('total_populasi'))
+                .where(sub_query.c.provinsi.in_(not_found_locations))
+                .group_by(sub_query.c.provinsi)
+            )
+        
+        data_dict_not_found = {item[0]: int(item[1]) for item in query.all()}
+        data_dict = {**data_dict, **data_dict_not_found}
+        
     data_result = []
     for key in data_dict.keys():
         if provinsi:
@@ -221,12 +369,12 @@ def get_ringkasan_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota
                  DimLokasi.provinsi,
                  DimLokasi.kabupaten_kota,
                  DimLokasi.kecamatan,
-                 FactPopulasi.tipe_ternak,
-                 FactPopulasi.jenis_kelamin,
-                 FactPopulasi.tipe_usia,
-                 FactPopulasi.jumlah)
-        .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
-        .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+                 FactPopulasiStream.tipe_ternak,
+                 FactPopulasiStream.jenis_kelamin,
+                 FactPopulasiStream.tipe_usia,
+                 FactPopulasiStream.jumlah)
+        .join(DimWaktu, DimWaktu.id == FactPopulasiStream.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactPopulasiStream.id_lokasi)
     )
     
     if tahun:
@@ -236,11 +384,11 @@ def get_ringkasan_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota
     if kabupaten_kota:
         sub_query = sub_query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
     if perah_pedaging:
-        sub_query = sub_query.where(FactPopulasi.tipe_ternak == perah_pedaging)
+        sub_query = sub_query.where(FactPopulasiStream.tipe_ternak == perah_pedaging)
     if jantan_betina:
-        sub_query = sub_query.where(FactPopulasi.jenis_kelamin == jantan_betina)
+        sub_query = sub_query.where(FactPopulasiStream.jenis_kelamin == jantan_betina)
     if dewasa_anakan:
-        sub_query = sub_query.where(FactPopulasi.tipe_usia == dewasa_anakan)
+        sub_query = sub_query.where(FactPopulasiStream.tipe_usia == dewasa_anakan)
         
     sub_query = sub_query.subquery()
     
@@ -248,39 +396,103 @@ def get_ringkasan_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota
     
     data = query.scalar()
     
+    if data is None:
+        sub_query = (
+            db.query(DimWaktu.tahun,
+                     DimLokasi.provinsi,
+                     DimLokasi.kabupaten_kota,
+                     DimLokasi.kecamatan,
+                     FactPopulasi.tipe_ternak,
+                     FactPopulasi.jenis_kelamin,
+                     FactPopulasi.tipe_usia,
+                     FactPopulasi.jumlah)
+            .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
+            .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+        )
+        
+        if tahun:
+            sub_query = sub_query.where(DimWaktu.tahun == tahun)
+        if provinsi:
+            sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+        if kabupaten_kota:
+            sub_query = sub_query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
+        if perah_pedaging:
+            sub_query = sub_query.where(FactPopulasi.tipe_ternak == perah_pedaging)
+        if jantan_betina:
+            sub_query = sub_query.where(FactPopulasi.jenis_kelamin == jantan_betina)
+        if dewasa_anakan:
+            sub_query = sub_query.where(FactPopulasi.tipe_usia == dewasa_anakan)
+            
+        sub_query = sub_query.subquery()
+        
+        query = db.query(func.sum(sub_query.c.jumlah).label('total_populasi'))
+        
+        data = query.scalar()
+    
     if data:
         return data
     else:
         return 0
     
-def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, kecamatan:str=None, perah_pedaging:str=None, jantan_betina:str=None, dewasa_anakan:str=None):
-    sub_query = (
-        db.query(DimWaktu.tahun,
-                 DimLokasi.provinsi,
-                 DimLokasi.kabupaten_kota,
-                 DimLokasi.kecamatan,
-                 FactPopulasi.tipe_ternak,
-                 FactPopulasi.jenis_kelamin,
-                 FactPopulasi.tipe_usia,
-                 FactPopulasi.jumlah)
-        .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
-        .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
-    )
+def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, kecamatan:str=None, perah_pedaging:str=None, jantan_betina:str=None, dewasa_anakan:str=None, db_type='stream'):
     
-    if tahun:
-        sub_query = sub_query.where(DimWaktu.tahun == tahun)
-    if provinsi:
-        sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
-    if kabupaten_kota:
-        sub_query = sub_query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
-    if kecamatan:
-        sub_query = sub_query.where(DimLokasi.kecamatan == kecamatan)
-    if perah_pedaging:
-        sub_query = sub_query.where(FactPopulasi.tipe_ternak == perah_pedaging)
-    if jantan_betina:
-        sub_query = sub_query.where(FactPopulasi.jenis_kelamin == jantan_betina)
-    if dewasa_anakan:
-        sub_query = sub_query.where(FactPopulasi.tipe_usia == dewasa_anakan)
+    if db_type == 'stream':
+        sub_query = (
+            db.query(DimWaktu.tahun,
+                     DimLokasi.provinsi,
+                     DimLokasi.kabupaten_kota,
+                     DimLokasi.kecamatan,
+                     FactPopulasiStream.tipe_ternak,
+                     FactPopulasiStream.jenis_kelamin,
+                     FactPopulasiStream.tipe_usia,
+                     FactPopulasiStream.jumlah)
+            .join(DimWaktu, DimWaktu.id == FactPopulasiStream.id_waktu)
+            .join(DimLokasi, DimLokasi.id == FactPopulasiStream.id_lokasi)
+        )
+        
+        if tahun:
+            sub_query = sub_query.where(DimWaktu.tahun == tahun)
+        if provinsi:
+            sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+        if kabupaten_kota:
+            sub_query = sub_query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
+        if kecamatan:
+            sub_query = sub_query.where(DimLokasi.kecamatan == kecamatan)
+        if perah_pedaging:
+            sub_query = sub_query.where(FactPopulasiStream.tipe_ternak == perah_pedaging)
+        if jantan_betina:
+            sub_query = sub_query.where(FactPopulasiStream.jenis_kelamin == jantan_betina)
+        if dewasa_anakan:
+            sub_query = sub_query.where(FactPopulasiStream.tipe_usia == dewasa_anakan)
+        
+    else:
+        sub_query = (
+            db.query(DimWaktu.tahun,
+                     DimLokasi.provinsi,
+                     DimLokasi.kabupaten_kota,
+                     DimLokasi.kecamatan,
+                     FactPopulasi.tipe_ternak,
+                     FactPopulasi.jenis_kelamin,
+                     FactPopulasi.tipe_usia,
+                     FactPopulasi.jumlah)
+            .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
+            .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+        )
+    
+        if tahun:
+            sub_query = sub_query.where(DimWaktu.tahun == tahun)
+        if provinsi:
+            sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+        if kabupaten_kota:
+            sub_query = sub_query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
+        if kecamatan:
+            sub_query = sub_query.where(DimLokasi.kecamatan == kecamatan)
+        if perah_pedaging:
+            sub_query = sub_query.where(FactPopulasi.tipe_ternak == perah_pedaging)
+        if jantan_betina:
+            sub_query = sub_query.where(FactPopulasi.jenis_kelamin == jantan_betina)
+        if dewasa_anakan:
+            sub_query = sub_query.where(FactPopulasi.tipe_usia == dewasa_anakan)
         
     sub_query = sub_query.subquery()
     
@@ -299,9 +511,9 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None):
                  DimLokasi.provinsi,
                  DimLokasi.kabupaten_kota,
                  DimLokasi.kecamatan,
-                 FactPopulasi.jumlah)
-        .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
-        .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+                 FactPopulasiStream.jumlah)
+        .join(DimWaktu, DimWaktu.id == FactPopulasiStream.id_waktu)
+        .join(DimLokasi, DimLokasi.id == FactPopulasiStream.id_lokasi)
     )
     
     if tahun:
@@ -316,10 +528,28 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None):
     if provinsi:
         if kabupaten_kota:
             query = db.query(sub_query.c.kecamatan)
+            
+            locations = (
+                db.query(DimLokasi.kecamatan)
+                .where(DimLokasi.provinsi == provinsi)
+                .where(DimLokasi.kabupaten_kota == kabupaten_kota)
+                .distinct()
+            ).all()
         else:
             query = db.query(sub_query.c.kabupaten_kota)
+            
+            locations = (
+                db.query(DimLokasi.kabupaten_kota)
+                .where(DimLokasi.provinsi == provinsi)
+                .distinct()
+            ).all()
     else:
         query = db.query(sub_query.c.provinsi)
+        
+        locations = (
+            db.query(DimLokasi.provinsi)
+            .distinct()
+        ).all()
         
     wilayah_list = [data[0] for data in query.distinct().all()]
     
@@ -330,35 +560,77 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None):
         
         if provinsi:
             if kabupaten_kota:
-                data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Jantan', 'Dewasa')
-                data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Betina', 'Dewasa')
-                data['perah_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Jantan', 'Anakan')
-                data['perah_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Betina', 'Anakan')
-                data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Jantan', 'Dewasa')
-                data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Betina', 'Dewasa')
-                data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Jantan', 'Anakan')
-                data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Betina', 'Anakan')
+                data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Jantan', 'Dewasa', 'stream')
+                data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Betina', 'Dewasa', 'stream')
+                data['perah_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Jantan', 'Anakan', 'stream')
+                data['perah_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Perah', 'Betina', 'Anakan', 'stream')
+                data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Jantan', 'Dewasa', 'stream')
+                data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Betina', 'Dewasa', 'stream')
+                data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Jantan', 'Anakan', 'stream')
+                data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Betina', 'Anakan', 'stream') 
             else:
-                data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Jantan', 'Dewasa')
-                data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Betina', 'Dewasa')
-                data['perah_anakan_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Jantan', 'Anakan')
-                data['perah_anakan_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Betina', 'Anakan')
-                data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Jantan', 'Dewasa')
-                data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Betina', 'Dewasa')
-                data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Jantan', 'Anakan')
-                data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Betina', 'Anakan')
+                data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Jantan', 'Dewasa', 'stream')
+                data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Betina', 'Dewasa', 'stream')
+                data['perah_anakan_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Jantan', 'Anakan', 'stream')
+                data['perah_anakan_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Betina', 'Anakan', 'stream')
+                data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Jantan', 'Dewasa', 'stream')
+                data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Betina', 'Dewasa', 'stream')
+                data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Jantan', 'Anakan', 'stream')
+                data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Betina', 'Anakan', 'stream')
         else:
-            data['perah_dewasa_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Jantan', 'Dewasa')
-            data['perah_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Betina', 'Dewasa')
-            data['perah_anakan_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Jantan', 'Anakan')
-            data['perah_anakan_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Betina', 'Anakan')
-            data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Jantan', 'Dewasa')
-            data['pedaging_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Betina', 'Dewasa')
-            data['pedaging_anakan_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Jantan', 'Anakan')
-            data['pedaging_anakan_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Betina', 'Anakan')
+            data['perah_dewasa_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Jantan', 'Dewasa', 'stream')
+            data['perah_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Betina', 'Dewasa', 'stream')
+            data['perah_anakan_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Jantan', 'Anakan', 'stream')
+            data['perah_anakan_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Betina', 'Anakan', 'stream')
+            data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Jantan', 'Dewasa', 'stream')
+            data['pedaging_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Betina', 'Dewasa', 'stream')
+            data['pedaging_anakan_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Jantan', 'Anakan', 'stream')
+            data['pedaging_anakan_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Betina', 'Anakan', 'stream')
             
         table_populasi.append(data)
-        
+    
+    locations = [item[0] for item in locations if item[0] is not None]
+    not_found_locations = set(locations) - set(wilayah_list)
+    
+    if len(not_found_locations) > 0:
+        for location in not_found_locations:
+            data = {}
+            data['wilayah'] = location
+            
+            if provinsi:
+                if kabupaten_kota:
+                    data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, location, 'Perah', 'Jantan', 'Dewasa', 'batch')
+                    data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, location, 'Perah', 'Betina', 'Dewasa', 'batch')
+                    data['perah_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, location, 'Perah', 'Jantan', 'Anakan', 'batch')
+                    data['perah_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, location, 'Perah', 'Betina', 'Anakan', 'batch')
+                    data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, location, 'Pedaging', 'Jantan', 'Dewasa', 'batch')
+                    data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, location, 'Pedaging', 'Betina', 'Dewasa', 'batch')
+                    data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, location, 'Pedaging', 'Jantan', 'Anakan', 'batch')
+                    data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, location, 'Pedaging', 'Betina', 'Anakan', 'batch')
+                else:
+                    data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, location, None, 'Perah', 'Jantan', 'Dewasa', 'batch')
+                    data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, location, None, 'Perah', 'Betina', 'Dewasa', 'batch')
+                    data['perah_anakan_jantan'] = get_table_data(db, tahun, provinsi, location, None, 'Perah', 'Jantan', 'Anakan', 'batch')
+                    data['perah_anakan_betina'] = get_table_data(db, tahun, provinsi, location, None, 'Perah', 'Betina', 'Anakan', 'batch')
+                    data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, provinsi, location, None, 'Pedaging', 'Jantan', 'Dewasa', 'batch')
+                    data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, location, None, 'Pedaging', 'Betina', 'Dewasa', 'batch')
+                    data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, location, None, 'Pedaging', 'Jantan', 'Anakan', 'batch')
+                    data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, location, None, 'Pedaging', 'Betina', 'Anakan', 'batch')
+            else:
+                data['perah_dewasa_jantan'] = get_table_data(db, tahun, location, None, None, 'Perah', 'Jantan', 'Dewasa', 'batch')
+                data['perah_dewasa_betina'] = get_table_data(db, tahun, location, None, None, 'Perah', 'Betina', 'Dewasa', 'batch')
+                data['perah_anakan_jantan'] = get_table_data(db, tahun, location, None, None, 'Perah', 'Jantan', 'Anakan', 'batch')
+                data['perah_anakan_betina'] = get_table_data(db, tahun, location, None, None, 'Perah', 'Betina', 'Anakan', 'batch')
+                data['pedaging_dewasa_jantan'] = get_table_data(db, tahun, location, None, None, 'Pedaging', 'Jantan', 'Dewasa', 'batch')
+                data['pedaging_dewasa_betina'] = get_table_data(db, tahun, location, None, None, 'Pedaging', 'Betina', 'Dewasa', 'batch')
+                data['pedaging_anakan_jantan'] = get_table_data(db, tahun, location, None, None, 'Pedaging', 'Jantan', 'Anakan', 'batch')
+                data['pedaging_anakan_betina'] = get_table_data(db, tahun, location, None, None, 'Pedaging', 'Betina', 'Anakan', 'batch')
+            
+            if (data['perah_dewasa_jantan'] == 0) and (data['perah_dewasa_betina'] == 0) and (data['perah_anakan_jantan'] == 0) and (data['perah_anakan_betina'] == 0) and (data['pedaging_dewasa_jantan'] == 0) and (data['pedaging_dewasa_betina'] == 0) and (data['pedaging_anakan_jantan'] == 0) and (data['pedaging_anakan_betina'] == 0):
+                continue
+            
+            table_populasi.append(data)
+            
     return table_populasi
                 
 def convert_decimals(obj):

@@ -27,7 +27,7 @@ def train_model():
             continue
         
         data_df = pd.read_csv(os.path.join(CLEANED_PATH, filename))
-        data_df = data_df[['id_waktu', 'id_lokasi', 'id_unit_ternak', 'date', 'jumlah_produksi']]
+        data_df = data_df[['id_waktu', 'id_lokasi', 'id_unit_peternakan', 'date', 'jumlah_produksi']]
         
         data_df = data_df.rename(columns={'jumlah_produksi': 'y'})
         
@@ -87,13 +87,13 @@ def train_model():
         evaluation_df['date'] = data_df['date']
         evaluation_df['id_waktu'] = data_df['id_waktu']
         evaluation_df['id_lokasi'] = data_df['id_lokasi']
-        evaluation_df['id_unit_ternak'] = data_df['id_unit_ternak']
+        evaluation_df['id_unit_peternakan'] = data_df['id_unit_peternakan']
         evaluation_df['actual'] = y_act
         evaluation_df['prediction'] = y_pred
         evaluation_df['mape'] = evaluation_df.apply(calculate_mape, axis=1)
         evaluation_df['created_at'] = datetime.now()
         evaluation_df['latency'] = None
-        evaluation_df = evaluation_df[['id_waktu', 'id_lokasi', 'id_unit_ternak',
+        evaluation_df = evaluation_df[['id_waktu', 'id_lokasi', 'id_unit_peternakan',
                                     'prediction', 'latency', 'mape', 'created_at']]
         
         evaluation_df.to_csv(os.path.join(PREDICTION_PATH, filename), index=False)

@@ -7,4 +7,4 @@ from upload_result import upload_prediction
 load_data()
 preprocess_data()
 train_model()
-upload_prediction()
+# upload_prediction()

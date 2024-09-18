@@ -1,4 +1,6 @@
 # DB connections
+IS_LOKAL = False
+DB_DATABASE = 'postgres'
 DB_USER = 'postgres'
 DB_PASSWORD ='123456'
 DB_HOST = 'localhost'
