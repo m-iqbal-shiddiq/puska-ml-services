@@ -549,11 +549,11 @@ async def get_susu_data(db: Session = Depends(get_db),
         responses['prod_dis_susu_segar'] = []
         
         if tahun:
-            produksi = get_produksi_series_by_year(db, 3, tahun, provinsi, unit_peternakan)
-            distribusi = get_distribusi_series_by_year(db, 3, tahun, provinsi, unit_peternakan)
+            produksi = get_produksi_series_by_year(db, 3, tahun, provinsi, unit_peternakan, days=30)
+            distribusi = get_distribusi_series_by_year(db, 3, tahun, provinsi, unit_peternakan, days=30)
         else:
-            produksi = get_produksi_series_by_interval(db, 3, provinsi, unit_peternakan)
-            distribusi = get_distribusi_series_by_interval(db, 3, provinsi, unit_peternakan)            
+            produksi = get_produksi_series_by_interval(db, 3, provinsi, unit_peternakan, days=30)
+            distribusi = get_distribusi_series_by_interval(db, 3, provinsi, unit_peternakan, days=30)            
 
         for key in produksi.keys():
             responses['prod_dis_susu_segar'].append({
