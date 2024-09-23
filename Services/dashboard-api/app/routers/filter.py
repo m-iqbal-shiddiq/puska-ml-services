@@ -42,7 +42,8 @@ async def get_filter_data(db = Depends(get_db)):
             wilayah_dict[wil[0]] = []
         
         if wil[1] is not None:
-            wilayah_dict[wil[0]].append(wil[1])
+            if wil[1] not in wilayah_dict[wil[0]]:
+                wilayah_dict[wil[0]].append(wil[1])
     
     responses['wilayah'] = []
     for key in wilayah_dict:
