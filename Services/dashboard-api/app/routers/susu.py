@@ -926,7 +926,7 @@ async def get_susu_data(db: Session = Depends(get_db),
 
         for key in produksi.keys():
             responses['prod_dis_susu_segar'].append({
-                'label': key,
+                'label': str(key),
                 'produksi': produksi[key],
                 'distribusi': distribusi[key]
             })
@@ -938,7 +938,7 @@ async def get_susu_data(db: Session = Depends(get_db),
         
         for key in mitra_bisnis:
             responses['permintaan_susu_segar_dari_mitra_all'].append({
-                'label': key,
+                'label': str(key),
                 'value': mitra_bisnis[key]
             })
         
