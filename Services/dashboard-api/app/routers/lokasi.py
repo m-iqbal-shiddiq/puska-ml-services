@@ -28,7 +28,7 @@ async def get_lokasi_data(db = Depends(get_db)):
     for data in datas:
         responses.append({
             'nama unit': data[0],
-            'point': f'POINT ({data[1]} {data[2]})'
+            'point': [data[1], data[2]]
         })
     
     return JSONResponse(
