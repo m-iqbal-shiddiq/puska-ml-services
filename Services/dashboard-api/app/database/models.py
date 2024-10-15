@@ -141,18 +141,18 @@ class FactProduksiStream(Base):
     
 class FactPopulasiStream(Base):
             
-        __tablename__ = 'fact_populasi_stream'
-        
-        id_waktu = Column(Integer, primary_key=True)
-        id_lokasi = Column(Integer, primary_key=True)
-        id_peternakan = Column(Integer, primary_key=True)
-        jenis_kelamin = Column(String)
-        tipe_ternak = Column(String)
-        tipe_usia = Column(String)
-        jumlah_lahir = Column(Integer)
-        jumlah_mati = Column(Integer)
-        jumlah_masuk = Column(Integer)
-        jumlah_keluar = Column(Integer)
-        jumlah = Column(Integer)
-        created_dt = Column(DateTime)
-        modified_dt = Column(DateTime)
+    __tablename__ = 'fact_populasi_stream'
+    
+    id_waktu = Column(Integer, primary_key=True)
+    id_lokasi = Column(Integer, primary_key=True)
+    id_peternakan = Column(Integer, primary_key=True)
+    jenis_kelamin = Column(String)
+    tipe_ternak = Column(String)
+    tipe_usia = Column(String)
+    jumlah_lahir = Column(Integer)
+    jumlah_mati = Column(Integer)
+    jumlah_masuk = Column(Integer)
+    jumlah_keluar = Column(Integer)
+    jumlah = Column(Integer)
+    created_dt = Column(DateTime)
+    modified_dt = Column(DateTime)
