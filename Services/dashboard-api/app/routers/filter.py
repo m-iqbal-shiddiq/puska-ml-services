@@ -67,7 +67,8 @@ async def get_filter_data(db = Depends(get_db)):
     # Unit Peternakan
     unit_peternakan = (
         db.query(DimUnitPeternakan.nama_unit,
-                 DimLokasi.provinsi)
+                 DimLokasi.provinsi,
+                 DimLokasi.kabupaten_kota)
         .distinct()
         .join(DimLokasi, DimUnitPeternakan.id_lokasi == DimLokasi.id)
         .where(DimUnitPeternakan.nama_unit != None)
@@ -75,20 +76,12 @@ async def get_filter_data(db = Depends(get_db)):
         .all()
     )
     
-    unit_peternakan_wilayah_dict = {}
-    for unit in unit_peternakan:
-        if unit[1] not in unit_peternakan_wilayah_dict:
-            unit_peternakan_wilayah_dict[unit[1]] = []
-        
-        if unit[0] is not None:
-            if unit[0] not in unit_peternakan_wilayah_dict[unit[1]]:
-                unit_peternakan_wilayah_dict[unit[1]].append(unit[0])
-        
     responses['unit_peternakan'] = []
-    for key in unit_peternakan_wilayah_dict:
+    for unit in unit_peternakan:
         responses['unit_peternakan'].append({
-            'provinsi': key,
-            'unit_peternakan': unit_peternakan_wilayah_dict[key]
+            'nama_unit': unit[0],
+            'provinsi': unit[1],
+            'kabupaten_kota': unit[2]
         })
     
     return JSONResponse(
