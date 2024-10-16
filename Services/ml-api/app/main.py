@@ -69,6 +69,8 @@ async def internal_exception_handler(request: Request, exc: Exception):
     )
     
 
+
+
 @app.post(
     path="/predict", 
     name="run_milk_prediction",
