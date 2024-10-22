@@ -28,7 +28,7 @@ def get_db():
         db.close()
         
 
-def filter_data(query, tahun:int, bulan: int, hari: str, provinsi: str, unit_peternakan: str):
+def filter_data(query, tahun:int, bulan: int, hari: str, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     if tahun:
         query = query.where(DimWaktu.tahun == tahun)
     if bulan:
@@ -37,21 +37,25 @@ def filter_data(query, tahun:int, bulan: int, hari: str, provinsi: str, unit_pet
         query = query.where(DimWaktu.hari == hari)
     if provinsi:
         query = query.where(DimLokasi.provinsi == provinsi)
+    if kabupaten_kota:
+        query = query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
     if unit_peternakan:
         query = query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
     
     return query
 
-def filter_series_data(query, provinsi: str, unit_peternakan: str):
+def filter_series_data(query, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     if provinsi:
         query = query.where(DimLokasi.provinsi == provinsi)
+    if kabupaten_kota:
+        query = query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
     if unit_peternakan:
         query = query.where(DimUnitPeternakan.nama_unit == unit_peternakan)
     
     return query
         
 
-def get_produksi_data(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, unit_peternakan: str):
+def get_produksi_data(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     sub_query = (
         db.query(DimWaktu.tahun,
                  DimWaktu.bulan,
@@ -65,7 +69,7 @@ def get_produksi_data(db, id_jenis_produk: int, tahun: int, bulan: int, hari: in
         .where(FactProduksiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)
+    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
         
     sub_query = sub_query.subquery()    
     query = db.query(
@@ -88,7 +92,7 @@ def get_produksi_data(db, id_jenis_produk: int, tahun: int, bulan: int, hari: in
             .where(FactProduksi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)
+        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
             
         sub_query = sub_query.subquery()    
         query = db.query(
@@ -102,7 +106,7 @@ def get_produksi_data(db, id_jenis_produk: int, tahun: int, bulan: int, hari: in
     else:
         return 0
     
-def get_distribusi_data(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, unit_peternakan: str):
+def get_distribusi_data(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     sub_query = (
         db.query(DimWaktu.tahun,
                  DimWaktu.bulan,
@@ -116,7 +120,7 @@ def get_distribusi_data(db, id_jenis_produk: int, tahun: int, bulan: int, hari: 
         .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)
+    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
         
     sub_query = sub_query.subquery()    
     query = db.query(
@@ -139,7 +143,7 @@ def get_distribusi_data(db, id_jenis_produk: int, tahun: int, bulan: int, hari: 
             .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)
+        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
             
         sub_query = sub_query.subquery()    
         query = db.query(
@@ -153,7 +157,7 @@ def get_distribusi_data(db, id_jenis_produk: int, tahun: int, bulan: int, hari: 
     else:
         return 0
  
-def get_produksi_yearly(db, id_jenis_produk:int, provinsi: str, unit_peternakan: str):
+def get_produksi_yearly(db, id_jenis_produk:int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     current_year = datetime.today().year
     
     sub_query = (
@@ -165,7 +169,7 @@ def get_produksi_yearly(db, id_jenis_produk:int, provinsi: str, unit_peternakan:
         .where(FactProduksiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+    sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
     sub_query = sub_query.subquery()
     
     query = (
@@ -190,7 +194,7 @@ def get_produksi_yearly(db, id_jenis_produk:int, provinsi: str, unit_peternakan:
             .where(FactProduksi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+        sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
         sub_query = sub_query.subquery()
         
         query = (
@@ -212,7 +216,7 @@ def get_produksi_yearly(db, id_jenis_produk:int, provinsi: str, unit_peternakan:
     
     return complete_data
 
-def get_distribusi_yearly(db, id_jenis_produk:int, provinsi: str, unit_peternakan: str):
+def get_distribusi_yearly(db, id_jenis_produk:int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     current_year = datetime.today().year
     
     sub_query = (
@@ -224,7 +228,7 @@ def get_distribusi_yearly(db, id_jenis_produk:int, provinsi: str, unit_peternaka
         .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+    sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
     sub_query = sub_query.subquery()
     
     query = (
@@ -249,7 +253,7 @@ def get_distribusi_yearly(db, id_jenis_produk:int, provinsi: str, unit_peternaka
             .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+        sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
         sub_query = sub_query.subquery()
         
         query = (
@@ -271,7 +275,7 @@ def get_distribusi_yearly(db, id_jenis_produk:int, provinsi: str, unit_peternaka
             
     return complete_data
 
-def get_produksi_monthly(db, id_jenis_produk:int, tahun: int, provinsi: str, unit_peternakan: str):
+def get_produksi_monthly(db, id_jenis_produk:int, tahun: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     current_year = datetime.today().year
     if tahun == current_year:
         current_month = datetime.today().month
@@ -288,7 +292,7 @@ def get_produksi_monthly(db, id_jenis_produk:int, tahun: int, provinsi: str, uni
         .where(FactProduksiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+    sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
     sub_query = sub_query.subquery()
     
     query = (
@@ -314,7 +318,7 @@ def get_produksi_monthly(db, id_jenis_produk:int, tahun: int, provinsi: str, uni
             .where(FactProduksi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+        sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
         sub_query = sub_query.subquery()
         
         query = (
@@ -336,7 +340,7 @@ def get_produksi_monthly(db, id_jenis_produk:int, tahun: int, provinsi: str, uni
             
     return complete_data
 
-def get_distribusi_monthly(db, id_jenis_produk:int, tahun: int, provinsi: str, unit_peternakan: str):
+def get_distribusi_monthly(db, id_jenis_produk:int, tahun: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     current_year = datetime.today().year
     if tahun == current_year:
         current_month = datetime.today().month
@@ -353,7 +357,7 @@ def get_distribusi_monthly(db, id_jenis_produk:int, tahun: int, provinsi: str, u
         .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+    sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
     sub_query = sub_query.subquery()
     
     query = (
@@ -379,7 +383,7 @@ def get_distribusi_monthly(db, id_jenis_produk:int, tahun: int, provinsi: str, u
             .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+        sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
         sub_query = sub_query.subquery()
         
         query = (
@@ -401,7 +405,7 @@ def get_distribusi_monthly(db, id_jenis_produk:int, tahun: int, provinsi: str, u
             
     return complete_data
 
-def get_produksi_daily(db, id_jenis_produk:int, tahun: int, bulan: int, provinsi: str, unit_peternakan: str):
+def get_produksi_daily(db, id_jenis_produk:int, tahun: int, bulan: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     if tahun == datetime.today().year:
         if bulan == datetime.today().month:
             last_day = datetime.today().day
@@ -422,7 +426,7 @@ def get_produksi_daily(db, id_jenis_produk:int, tahun: int, bulan: int, provinsi
         .where(FactProduksiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+    sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
     sub_query = sub_query.subquery()
     
     query = (
@@ -448,7 +452,7 @@ def get_produksi_daily(db, id_jenis_produk:int, tahun: int, bulan: int, provinsi
             .where(FactProduksi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+        sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
         sub_query = sub_query.subquery()
         
         query = (
@@ -467,7 +471,7 @@ def get_produksi_daily(db, id_jenis_produk:int, tahun: int, bulan: int, provinsi
 
     return sorted_data_dict
 
-def get_distribusi_daily(db, id_jenis_produk:int, tahun: int, bulan: int, provinsi: str, unit_peternakan: str):
+def get_distribusi_daily(db, id_jenis_produk:int, tahun: int, bulan: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     if tahun == datetime.today().year:
         if bulan == datetime.today().month:
             last_day = datetime.today().day
@@ -488,7 +492,7 @@ def get_distribusi_daily(db, id_jenis_produk:int, tahun: int, bulan: int, provin
         .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+    sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
     sub_query = sub_query.subquery()
     
     query = (
@@ -514,7 +518,7 @@ def get_distribusi_daily(db, id_jenis_produk:int, tahun: int, bulan: int, provin
             .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_series_data(sub_query, provinsi, unit_peternakan)
+        sub_query = filter_series_data(sub_query, provinsi, kabupaten_kota, unit_peternakan)
         sub_query = sub_query.subquery()
         
         query = (
@@ -533,7 +537,7 @@ def get_distribusi_daily(db, id_jenis_produk:int, tahun: int, bulan: int, provin
     
     return sorted_data_dict 
 
-def get_permintaan_susu_segar_dari_mitra(db, id_jenis_produk:int, tahun: int, bulan: int, hari: int, provinsi: str, unit_peternakan: str):
+def get_permintaan_susu_segar_dari_mitra(db, id_jenis_produk:int, tahun: int, bulan: int, hari: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     sub_query = (
         db.query(DimMitraBisnis.nama_mitra_bisnis,
                  FactDistribusiStream.jumlah_distribusi)
@@ -544,7 +548,7 @@ def get_permintaan_susu_segar_dari_mitra(db, id_jenis_produk:int, tahun: int, bu
         .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
    
-    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)
+    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
     sub_query = sub_query.subquery()
     
     query = (
@@ -573,7 +577,7 @@ def get_permintaan_susu_segar_dari_mitra(db, id_jenis_produk:int, tahun: int, bu
             .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
         )
 
-        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)
+        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
         sub_query = sub_query.subquery()
         
         query = (
@@ -588,7 +592,7 @@ def get_permintaan_susu_segar_dari_mitra(db, id_jenis_produk:int, tahun: int, bu
     
     return data_dict
 
-def get_total_pendapatan(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, unit_peternakan: str):
+def get_total_pendapatan(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     
     query = (
         db.query(FactDistribusiStream.jumlah_distribusi, 
@@ -599,7 +603,7 @@ def get_total_pendapatan(db, id_jenis_produk: int, tahun: int, bulan: int, hari:
         .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    query = filter_data(query, tahun, bulan, hari, provinsi, unit_peternakan)
+    query = filter_data(query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
         
     data_list = query.all()
     
@@ -613,7 +617,7 @@ def get_total_pendapatan(db, id_jenis_produk: int, tahun: int, bulan: int, hari:
             .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
         )
         
-        query = filter_data(query, tahun, bulan, hari, provinsi, unit_peternakan)
+        query = filter_data(query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
     
     total_pendapatan = 0
     for data in data_list:
@@ -621,7 +625,7 @@ def get_total_pendapatan(db, id_jenis_produk: int, tahun: int, bulan: int, hari:
         
     return total_pendapatan
     
-def get_harga_minimum(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, unit_peternakan: str):
+def get_harga_minimum(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     sub_query = (
         db.query(FactDistribusiStream.harga_minimum)
         .join(DimWaktu, DimWaktu.id == FactDistribusiStream.id_waktu)
@@ -630,7 +634,7 @@ def get_harga_minimum(db, id_jenis_produk: int, tahun: int, bulan: int, hari: in
         .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)    
+    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)    
     sub_query = sub_query.subquery()
     
     query = (
@@ -648,7 +652,7 @@ def get_harga_minimum(db, id_jenis_produk: int, tahun: int, bulan: int, hari: in
             .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)
+        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
         sub_query = sub_query.subquery()
         
         query = (
@@ -662,7 +666,7 @@ def get_harga_minimum(db, id_jenis_produk: int, tahun: int, bulan: int, hari: in
     else:
         return 0
 
-def get_harga_maximum(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, unit_peternakan: str):
+def get_harga_maximum(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     sub_query = (
         db.query(FactDistribusiStream.harga_maximum)
         .join(DimWaktu, DimWaktu.id == FactDistribusiStream.id_waktu)
@@ -671,7 +675,7 @@ def get_harga_maximum(db, id_jenis_produk: int, tahun: int, bulan: int, hari: in
         .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)
+    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
     sub_query = sub_query.subquery()
     
     query = (
@@ -689,7 +693,7 @@ def get_harga_maximum(db, id_jenis_produk: int, tahun: int, bulan: int, hari: in
             .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)   
+        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)   
         sub_query = sub_query.subquery()
         
         query = (
@@ -703,7 +707,7 @@ def get_harga_maximum(db, id_jenis_produk: int, tahun: int, bulan: int, hari: in
     else:
         return 0
 
-def get_harga_rata_rata(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, unit_peternakan: str):
+def get_harga_rata_rata(db, id_jenis_produk: int, tahun: int, bulan: int, hari: int, provinsi: str, kabupaten_kota: str, unit_peternakan: str):
     sub_query = (
         db.query(FactDistribusiStream.harga_rata_rata)
         .join(DimWaktu, DimWaktu.id == FactDistribusiStream.id_waktu)
@@ -712,7 +716,7 @@ def get_harga_rata_rata(db, id_jenis_produk: int, tahun: int, bulan: int, hari: 
         .where(FactDistribusiStream.id_jenis_produk == id_jenis_produk)
     )
     
-    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)      
+    sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)      
     sub_query = sub_query.subquery()
     
     query = (
@@ -730,7 +734,7 @@ def get_harga_rata_rata(db, id_jenis_produk: int, tahun: int, bulan: int, hari: 
             .where(FactDistribusi.id_jenis_produk == id_jenis_produk)
         )
         
-        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, unit_peternakan)
+        sub_query = filter_data(sub_query, tahun, bulan, hari, provinsi, kabupaten_kota, unit_peternakan)
         sub_query = sub_query.subquery()
         
         query = (
@@ -744,7 +748,7 @@ def get_harga_rata_rata(db, id_jenis_produk: int, tahun: int, bulan: int, hari: 
     else:
         return 0
 
-def get_prediksi_data(db, provinsi, unit_peternakan, days=30):
+def get_prediksi_data(db, provinsi, kabupaten_kota, unit_peternakan, days=30):
     start_date = datetime.today() - timedelta(days=days)
     # start_date = datetime.strptime("2023-01-01", "%Y-%m-%d")
     end_date = datetime.today() + timedelta(days=1)
@@ -762,7 +766,7 @@ def get_prediksi_data(db, provinsi, unit_peternakan, days=30):
         .where(DimWaktu.tanggal < end_date)
     )
     
-    sub_query_prediksi = filter_series_data(sub_query_produksi, provinsi, unit_peternakan)
+    sub_query_prediksi = filter_series_data(sub_query_produksi, provinsi, kabupaten_kota, unit_peternakan)
     sub_query_produksi = sub_query_produksi.subquery()
     
     query = (
@@ -791,7 +795,7 @@ def get_prediksi_data(db, provinsi, unit_peternakan, days=30):
         .where(DimWaktu.tanggal <= end_date)
     )
     
-    sub_query_prediksi = filter_series_data(sub_query_prediksi, provinsi, unit_peternakan)
+    sub_query_prediksi = filter_series_data(sub_query_prediksi, provinsi, kabupaten_kota, unit_peternakan)
     sub_query_prediksi = sub_query_prediksi.subquery()
     
     query = (
@@ -835,6 +839,7 @@ async def get_susu_data(db: Session = Depends(get_db),
                         bulan: Optional[int] = Query(None),
                         hari: Optional[int] = Query(None),
                         provinsi: Optional[str] = Query(None),
+                        kabupaten_kota: Optional[str] = Query(None),
                         unit_peternakan: Optional[str] = Query(None)):
     
     try:
@@ -842,31 +847,31 @@ async def get_susu_data(db: Session = Depends(get_db),
         
         # Susu Segar
         responses['susu_segar'] = {}
-        responses['susu_segar']['produksi'] = get_produksi_data(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
-        responses['susu_segar']['distribusi'] = get_distribusi_data(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
+        responses['susu_segar']['produksi'] = get_produksi_data(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
+        responses['susu_segar']['distribusi'] = get_distribusi_data(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
 
         # Susu Pasteurisasi
         responses['susu_pasteurisasi'] = {}
-        responses['susu_pasteurisasi']['produksi'] = get_produksi_data(db=db, id_jenis_produk=4, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
-        responses['susu_pasteurisasi']['distribusi'] = get_distribusi_data(db=db, id_jenis_produk=4, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
+        responses['susu_pasteurisasi']['produksi'] = get_produksi_data(db=db, id_jenis_produk=4, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
+        responses['susu_pasteurisasi']['distribusi'] = get_distribusi_data(db=db, id_jenis_produk=4, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
         
         # Susu Kefir
         responses['susu_kefir'] = {}
-        responses['susu_kefir']['produksi'] = get_produksi_data(db=db, id_jenis_produk=5, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
-        responses['susu_kefir']['distribusi'] = get_distribusi_data(db=db, id_jenis_produk=5, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
+        responses['susu_kefir']['produksi'] = get_produksi_data(db=db, id_jenis_produk=5, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
+        responses['susu_kefir']['distribusi'] = get_distribusi_data(db=db, id_jenis_produk=5, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
         
         # Yogurt
         responses['yogurt'] = {}
-        responses['yogurt']['produksi'] = get_produksi_data(db=db,id_jenis_produk=6, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
-        responses['yogurt']['distribusi'] = get_distribusi_data(db=db, id_jenis_produk=6, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
+        responses['yogurt']['produksi'] = get_produksi_data(db=db,id_jenis_produk=6, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
+        responses['yogurt']['distribusi'] = get_distribusi_data(db=db, id_jenis_produk=6, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
         
         # Keju
         responses['keju'] = {}
-        responses['keju']['produksi'] = get_produksi_data(db=db, id_jenis_produk=7, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
-        responses['keju']['distribusi'] = get_distribusi_data(db=db, id_jenis_produk=7, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
+        responses['keju']['produksi'] = get_produksi_data(db=db, id_jenis_produk=7, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
+        responses['keju']['distribusi'] = get_distribusi_data(db=db, id_jenis_produk=7, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
         
         # Prediksi
-        responses['prediksi'] = get_prediksi_data(db, provinsi, unit_peternakan)
+        responses['prediksi'] = get_prediksi_data(db, provinsi, kabupaten_kota, unit_peternakan)
         
         # Persentase Produksi
         total_produksi = (
@@ -915,14 +920,14 @@ async def get_susu_data(db: Session = Depends(get_db),
         
         if tahun:
             if bulan:
-                produksi = get_produksi_daily(db, id_jenis_produk=3, tahun=tahun, bulan=bulan, provinsi=provinsi, unit_peternakan=unit_peternakan)
-                distribusi = get_distribusi_daily(db, id_jenis_produk=3, tahun=tahun, bulan=bulan, provinsi=provinsi, unit_peternakan=unit_peternakan)
+                produksi = get_produksi_daily(db, id_jenis_produk=3, tahun=tahun, bulan=bulan, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
+                distribusi = get_distribusi_daily(db, id_jenis_produk=3, tahun=tahun, bulan=bulan, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
             else:
-                produksi = get_produksi_monthly(db, id_jenis_produk=3, tahun=tahun, provinsi=provinsi, unit_peternakan=unit_peternakan)
-                distribusi = get_distribusi_monthly(db, id_jenis_produk=3, tahun=tahun, provinsi=provinsi, unit_peternakan=unit_peternakan)
+                produksi = get_produksi_monthly(db, id_jenis_produk=3, tahun=tahun, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
+                distribusi = get_distribusi_monthly(db, id_jenis_produk=3, tahun=tahun, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
         else:
-            produksi = get_produksi_yearly(db, id_jenis_produk=3, provinsi=provinsi, unit_peternakan=unit_peternakan)
-            distribusi = get_distribusi_yearly(db, id_jenis_produk=3, provinsi=provinsi, unit_peternakan=unit_peternakan)        
+            produksi = get_produksi_yearly(db, id_jenis_produk=3, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
+            distribusi = get_distribusi_yearly(db, id_jenis_produk=3, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)        
 
         for key in produksi.keys():
             responses['prod_dis_susu_segar'].append({
@@ -934,7 +939,7 @@ async def get_susu_data(db: Session = Depends(get_db),
         # Permintaan Susu Segar dari Mitra Bisnis
         responses['permintaan_susu_segar_dari_mitra_all'] = []
         
-        mitra_bisnis = get_permintaan_susu_segar_dari_mitra(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
+        mitra_bisnis = get_permintaan_susu_segar_dari_mitra(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
         
         for key in mitra_bisnis:
             responses['permintaan_susu_segar_dari_mitra_all'].append({
@@ -961,13 +966,13 @@ async def get_susu_data(db: Session = Depends(get_db),
             responses['total_persentase_distribusi'] = 0
         
         # Total Pendapatan
-        responses['total_pendapatan'] = get_total_pendapatan(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
+        responses['total_pendapatan'] = get_total_pendapatan(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
         
         # Harga Minimum
         responses['harga_susu'] = {}
-        responses['harga_susu']['minimum'] = get_harga_minimum(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
-        responses['harga_susu']['maximum'] = get_harga_maximum(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
-        responses['harga_susu']['rata_rata'] = get_harga_rata_rata(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, unit_peternakan=unit_peternakan)
+        responses['harga_susu']['minimum'] = get_harga_minimum(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
+        responses['harga_susu']['maximum'] = get_harga_maximum(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
+        responses['harga_susu']['rata_rata'] = get_harga_rata_rata(db=db, id_jenis_produk=3, tahun=tahun, bulan=bulan, hari=hari, provinsi=provinsi, kabupaten_kota=kabupaten_kota, unit_peternakan=unit_peternakan)
         
         # return responses
         return JSONResponse(
