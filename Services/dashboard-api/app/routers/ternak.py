@@ -636,36 +636,36 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, pe
             for row in table_populasi:
                 for key in row.keys():
                     if 'pedaging' in key:
-                        row[key] = None
+                        row[key] = 0
         elif perah_pedaging == 'Pedaging':
             for row in table_populasi:
                 for key in row.keys():
                     if 'perah' in key:
-                        row[key] = None
+                        row[key] = 0
         
         if dewasa_anakan != None:
             if dewasa_anakan == 'Dewasa':
                 for row in table_populasi:
                     for key in row.keys():
                         if 'anakan' in key:
-                            row[key] = None
+                            row[key] = 0
             elif dewasa_anakan == 'Anakan':
                 for row in table_populasi:
                     for key in row.keys():
                         if 'dewasa' in key:
-                            row[key] = None
+                            row[key] = 0
             
             if jantan_betina != None:
                 if jantan_betina == 'Jantan':
                     for row in table_populasi:
                         for key in row.keys():
                             if 'betina' in key:
-                                row[key] = None
+                                row[key] = 0
                 elif jantan_betina == 'Betina':
                     for row in table_populasi:
                         for key in row.keys():
                             if 'jantan' in key:
-                                row[key] = None
+                                row[key] = 0
         
     
     return table_populasi
