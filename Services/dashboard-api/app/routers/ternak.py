@@ -505,7 +505,7 @@ def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=Non
     else:
         return 0
      
-def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None):
+def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, perah_pedaging:str=None, dewasa_anakan:str=None, jantan_betina:str=None):
     sub_query = (
         db.query(DimWaktu.tahun,
                  DimLokasi.provinsi,
@@ -630,7 +630,44 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None):
                 continue
             
             table_populasi.append(data)
+    
+    if perah_pedaging != None:
+        if perah_pedaging == 'Perah':
+            for row in table_populasi:
+                for key in row.keys():
+                    if 'pedaging' in key:
+                        row[key] = None
+        elif perah_pedaging == 'Pedaging':
+            for row in table_populasi:
+                for key in row.keys():
+                    if 'perah' in key:
+                        row[key] = None
+        
+        if dewasa_anakan != None:
+            if dewasa_anakan == 'Dewasa':
+                for row in table_populasi:
+                    for key in row.keys():
+                        if 'anakan' in key:
+                            row[key] = None
+            elif dewasa_anakan == 'Anakan':
+                for row in table_populasi:
+                    for key in row.keys():
+                        if 'dewasa' in key:
+                            row[key] = None
             
+            if jantan_betina != None:
+                if jantan_betina == 'Jantan':
+                    for row in table_populasi:
+                        for key in row.keys():
+                            if 'betina' in key:
+                                row[key] = None
+                elif jantan_betina == 'Betina':
+                    for row in table_populasi:
+                        for key in row.keys():
+                            if 'jantan' in key:
+                                row[key] = None
+        
+    
     return table_populasi
                 
 def convert_decimals(obj):
@@ -752,7 +789,7 @@ async def get_ternak_data(db: Session = Depends(get_db),
         responses['ringkasan_populasi']['jumlah_pedaging_anakan'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'Pedaging', jantan_betina, 'Anakan')
         
         # Table Populasi
-        responses['table'] = get_table(db, tahun, provinsi, kabupaten_kota)
+        responses['table'] = get_table(db, tahun, provinsi, kabupaten_kota, perah_pedaging, dewasa_anakan, jantan_betina)
         
         return JSONResponse(
             status_code=status.HTTP_200_OK,
