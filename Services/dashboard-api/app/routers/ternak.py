@@ -740,8 +740,8 @@ async def get_ternak_data(db: Session = Depends(get_db),
             responses['susu_segar']['persentase'] = 0
             
         # Produksi dan Distribusi Ternak Potong
-        produksi = get_produksi_series_by_interval(db, 2, days=30)
-        distribusi = get_distribusi_series_by_interval(db, 2, days=30)
+        produksi = get_produksi_series_by_interval(db, 2, days=365)
+        distribusi = get_distribusi_series_by_interval(db, 2, days=365)
         pro_dis_ternak_potong_list = []
         for i in range(len(produksi)):
             pro_dis_ternak_potong_list.append({
@@ -753,8 +753,8 @@ async def get_ternak_data(db: Session = Depends(get_db),
         responses['pro_dis_ternak_potong'] = pro_dis_ternak_potong_list
         
         # Produksi dan Distribusi Daging Ternak
-        produksi = get_produksi_series_by_interval(db, 1, days=30)
-        distribusi = get_distribusi_series_by_interval(db, 1, days=30)
+        produksi = get_produksi_series_by_interval(db, 1, days=365)
+        distribusi = get_distribusi_series_by_interval(db, 1, days=365)
         pro_dis_daging_ternak_list = []
         for i in range(len(produksi)):
             pro_dis_daging_ternak_list.append({
@@ -766,8 +766,8 @@ async def get_ternak_data(db: Session = Depends(get_db),
         responses['pro_dis_daging_ternak'] = pro_dis_daging_ternak_list
         
         # Produksi dan Distribusi Susu Segar
-        produksi = get_produksi_series_by_interval(db, 3, days=30)
-        distribusi = get_distribusi_series_by_interval(db, 3, days=30)
+        produksi = get_produksi_series_by_interval(db, 3, days=365)
+        distribusi = get_distribusi_series_by_interval(db, 3, days=365)
         pro_dis_susu_segar_list = []
         for i in range(len(produksi)):
             pro_dis_susu_segar_list.append({
