@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
+from sqlalchemy import distinct
 
 from app.database.connection import SessionLocal
-from app.database.models import DimUnitPeternakan
+from app.database.models import DimUnitPeternakan, FactProduksi, DimLokasi
 
 router = APIRouter(redirect_slashes=False)
 
@@ -18,10 +19,12 @@ async def get_lokasi_data(db = Depends(get_db)):
     responses = []
     
     datas = (
-        db.query(DimUnitPeternakan.nama_unit,
+        db.query(distinct(DimUnitPeternakan.nama_unit),
                  DimUnitPeternakan.longitude,
                  DimUnitPeternakan.latitude)
+        .join(FactProduksi, FactProduksi.id_unit_peternakan == DimUnitPeternakan.id)
         .where(DimUnitPeternakan.nama_unit != None)
+        .where(FactProduksi.jumlah_produksi > 0)
         .all()
     )
     
