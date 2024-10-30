@@ -1,23 +1,24 @@
 import os
+import pandas as pd
 import tensorflow as tf
 
 
 CWD_PATH = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 
-def load_model(model_path: str):
-    
+def load_model(log_df, model_path: str):
     model_path = os.path.join(CWD_PATH, model_path)
     
-    model_dict = {}
+    model_list = []
+    for idx, row in log_df.iterrows():
+        model_list.append({
+            'id_lokasi': row['id_lokasi'],
+            'id_unit_peternakan': row['id_unit_peternakan'],
+            'model': tf.keras.models.load_model(
+                os.path.join(model_path, row['model'])
+            )
+        })
+        
+    model_df = pd.DataFrame(model_list)
     
-    for model in os.listdir(model_path):
-        
-        if model == '.DS_Store':
-            continue
-        
-        model_dict[model.replace('.h5', '')] = tf.keras.models.load_model(
-            os.path.join(model_path, model)
-        )
-        
-    return model_dict
+    return model_df
     
