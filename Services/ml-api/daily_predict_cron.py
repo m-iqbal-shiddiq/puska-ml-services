@@ -57,5 +57,6 @@ def main():
             'id_unit_peternakan': row['id_unit_peternakan']
         }
         response = requests.post(URL, json=data)
+        print(response.json())
         
 main()
