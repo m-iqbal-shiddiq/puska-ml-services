@@ -4,11 +4,11 @@ import pandas as pd
 
 from sqlalchemy import text
 
-from helpers.constant import DATASET_RAW_PATH, DATASET_PREDICTION_PATH, LOG_PATH, SAVE_THRESHOLD
+from database.connection import Config
 
-def load_data(engine):
+def load_data(engine, C=Config()):
     
-    log_df = pd.read_csv(LOG_PATH)
+    log_df = pd.read_csv(C.LOG_PATH)
     logs = []
     
     print('Loading data from database...')
@@ -49,7 +49,7 @@ def load_data(engine):
         province_df_agg = province_df.copy().groupby('date')['jumlah_produksi'].mean().reset_index()
         province_df_agg = province_df_agg.sort_values('date')
         
-        if len(province_df_agg) < SAVE_THRESHOLD:
+        if len(province_df_agg) < C.SAVE_THRESHOLD:
             continue
         
         province_df_result = pd.merge(time_df, province_df_agg, on='date')
@@ -71,7 +71,7 @@ def load_data(engine):
         
         province_df_result = province_df_result[['id_waktu', 'id_lokasi', 'id_unit_peternakan', 'date', 'jumlah_produksi']]
         province_df_result = province_df_result.sort_values('date')
-        province_df_result.to_csv(os.path.join(DATASET_RAW_PATH, f'{province}.csv'), index=False)
+        province_df_result.to_csv(os.path.join(C.DATASET_RAW_PATH, f'{province}.csv'), index=False)
         
         available_provinces.append(province)
         logs.append({
@@ -95,7 +95,7 @@ def load_data(engine):
             regency_df_agg = regency_df.copy().groupby('date')['jumlah_produksi'].mean().reset_index()
             regency_df_agg = regency_df_agg.sort_values('date')
             
-            if len(regency_df_agg) < SAVE_THRESHOLD:
+            if len(regency_df_agg) < C.SAVE_THRESHOLD:
                 continue
             
             regency_df_result = pd.merge(time_df, regency_df_agg, on='date')
@@ -117,7 +117,7 @@ def load_data(engine):
             
             regency_df_result = regency_df_result[['id_waktu', 'id_lokasi', 'id_unit_peternakan', 'date', 'jumlah_produksi']]
             regency_df_result = regency_df_result.sort_values('date')
-            regency_df_result.to_csv(os.path.join(DATASET_RAW_PATH, f'{province}_{regency}.csv'), index=False)
+            regency_df_result.to_csv(os.path.join(C.DATASET_RAW_PATH, f'{province}_{regency}.csv'), index=False)
             
             available_regencies[regency] = id_regency
             logs.append({
@@ -139,50 +139,51 @@ def load_data(engine):
             unit_df_agg = unit_df.copy().groupby('date')['jumlah_produksi'].mean().reset_index()
             unit_df_agg = unit_df_agg.sort_values('date')
             
-            if len(unit_df_agg) < SAVE_THRESHOLD:
+            if len(unit_df_agg) < C.SAVE_THRESHOLD:
                 continue
             
             unit_df_result = pd.merge(time_df, unit_df_agg, on='date')
             
             query_unit = f"""
-                SELECT id FROM dim_unit_peternakan
+                SELECT id, id_lokasi FROM dim_unit_peternakan
                 WHERE
                     nama_unit = '{unit}'
             """
             
-            id_unit = pd.read_sql(query_unit, engine)
-            id_unit = id_unit['id'].values[0]
+            temp = pd.read_sql(query_unit, engine)
+            id_unit = temp['id'].values[0]
+            id_location = temp['id_lokasi'].values[0]
             
-            unit_df_result['id_lokasi'] = id_regency
+            unit_df_result['id_lokasi'] = id_location
             unit_df_result['id_waktu'] = unit_df_result['id_waktu'].astype(int)
             unit_df_result['id_unit_peternakan'] = id_unit
             
             unit_df_result = unit_df_result[['id_waktu', 'id_lokasi', 'id_unit_peternakan', 'date', 'jumlah_produksi']]
             unit_df_result = unit_df_result.sort_values('date')
-            unit_df_result.to_csv(os.path.join(DATASET_RAW_PATH, f'{regency}_{unit}.csv'), index=False)
+            unit_df_result.to_csv(os.path.join(C.DATASET_RAW_PATH, f'{regency}_{unit}.csv'), index=False)
             
             logs.append({
-                'id_lokasi': id_regency,
+                'id_lokasi': id_location,
                 'id_unit_peternakan': id_unit,
                 'raw': f'{regency}_{unit}.csv'
             })
     
     if len(logs) > 0:
         log_df = pd.concat([log_df, pd.DataFrame(logs)], ignore_index=True)
-        log_df.to_csv(LOG_PATH, index=False)
+        log_df.to_csv(C.LOG_PATH, index=False)
         
-def upload_data(engine):
+def upload_data(engine, C=Config()):
     
     with engine.connect() as conn:
         conn.execute(text('TRUNCATE TABLE pred_susu'))
         conn.commit()
         
     print(f'Uploading prediction result to database...')
-    for filename in os.listdir(DATASET_PREDICTION_PATH):
+    for filename in os.listdir(C.DATASET_PREDICTION_PATH):
         if not filename.endswith('.csv'):
             continue
         
-        data_df = pd.read_csv(os.path.join(DATASET_PREDICTION_PATH, filename))
+        data_df = pd.read_csv(os.path.join(C.DATASET_PREDICTION_PATH, filename))
         data_df['id_waktu'] = data_df['id_waktu'].fillna(0).replace([np.inf, -np.inf], 0)
         data_df['id_waktu'] = data_df['id_waktu'].astype(int)
         data_df['id_lokasi'] = data_df['id_lokasi'].fillna(0).replace([np.inf, -np.inf], 0)

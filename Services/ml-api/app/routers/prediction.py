@@ -8,7 +8,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing_extensions import Annotated
 
-from app.database.connection import SessionLocal, Config
+from app.database.config import Config
+from app.database.connection import SessionLocal
 from app.database.models import DimWaktu, DimLokasi, DimUnitPeternakan, FactProduksi, FactProduksiStream, PredSusu
 from app.helpers.load_model import load_model
 from app.helpers.load_scaler import load_scaler
@@ -22,7 +23,10 @@ log_df = pd.read_csv('./train-log.csv')
 log_df = log_df[['id_lokasi', 'id_unit_peternakan', 'model', 'scaler']]
 
 MODEL_DF = load_model(log_df, CONFIG.MODEL_PATH)
+MODEL_DF = MODEL_DF.replace({np.nan: None})
+
 SCALER_DF = load_scaler(log_df, CONFIG.SCALER_PATH)
+SCALER_DF = SCALER_DF.replace({np.nan: None})
 
 router = APIRouter(redirect_slashes=False)
 
@@ -263,12 +267,15 @@ async def create_prediction(predict_request: PredictionRequest, db: Session = De
                         'message': "Data not found."
                     }
                 )
-            print(data_input_final)
+                
             input_data_df = pd.DataFrame(data_input_final, columns=['id_waktu', 'jumlah_produksi'])
             input_data_df = input_data_df.sort_values(by='id_waktu')
             
             # Get Model
-            model = MODEL_DF.loc[(MODEL_DF['id_lokasi'] == predict_input.id_lokasi )& (MODEL_DF['id_unit_peternakan'] == predict_input.id_unit_peternakan)]['model']
+            if predict_input.id_unit_peternakan:
+                model = MODEL_DF.loc[(MODEL_DF['id_lokasi'] == predict_input.id_lokasi) & (MODEL_DF['id_unit_peternakan'] == predict_input.id_unit_peternakan)]['model']
+            else:   
+                model = MODEL_DF.loc[(MODEL_DF['id_lokasi'] == predict_input.id_lokasi) & (MODEL_DF['id_unit_peternakan'].isnull())]['model']
             if len(model) > 0:
                 model = model.values[0]
             else:
@@ -282,7 +289,10 @@ async def create_prediction(predict_request: PredictionRequest, db: Session = De
                 )
             
             # Get Scaler
-            scaler = SCALER_DF.loc[(SCALER_DF['id_lokasi'] == predict_input.id_lokasi )& (SCALER_DF['id_unit_peternakan'] == predict_input.id_unit_peternakan)]['scaler']
+            if predict_input.id_unit_peternakan:
+                scaler = SCALER_DF.loc[(SCALER_DF['id_lokasi'] == predict_input.id_lokasi )& (SCALER_DF['id_unit_peternakan'] == predict_input.id_unit_peternakan)]['scaler']
+            else:
+                scaler = SCALER_DF.loc[(SCALER_DF['id_lokasi'] == predict_input.id_lokasi) & (SCALER_DF['id_unit_peternakan'].isnull())]['scaler']
             if len(scaler) > 0:
                 scaler = scaler.values[0]
             else:

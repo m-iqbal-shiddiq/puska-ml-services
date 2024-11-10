@@ -1,18 +1,18 @@
 import os
 import pandas as pd
 
-from helpers.constant import DATASET_CLEANED_PATH, DATASET_RAW_PATH, TOTAL_DAY_TO_FILL_MISSING_VALUES
+from database.connection import Config
 from helpers.log import update_log
 
-def clean_data(engine):
+def clean_data(engine, C=Config()):
     
     print('Cleaning data...')
     
-    for filename in os.listdir(DATASET_RAW_PATH):
+    for filename in os.listdir(C.DATASET_RAW_PATH):
         if not filename.endswith(".csv"):
             continue
         
-        data_df = pd.read_csv(os.path.join(DATASET_RAW_PATH, filename))
+        data_df = pd.read_csv(os.path.join(C.DATASET_RAW_PATH, filename))
         data_df['date'] = pd.to_datetime(data_df['date'], format='%Y-%m-%d')
         
         date_ranges = pd.date_range(start=data_df['date'].min(), end=data_df['date'].max(), freq='D')
@@ -49,8 +49,8 @@ def clean_data(engine):
                 if not pd.isnull(row['jumlah_produksi']):
                     continue
         
-                if index > (TOTAL_DAY_TO_FILL_MISSING_VALUES - 1):
-                    start_index = index - TOTAL_DAY_TO_FILL_MISSING_VALUES
+                if index > (C.TOTAL_DAY_TO_FILL_MISSING_VALUES - 1):
+                    start_index = index - C.TOTAL_DAY_TO_FILL_MISSING_VALUES
                     end_index = index - 1
                     
                     temp_df = data_df.loc[start_index:end_index, :]
@@ -61,7 +61,7 @@ def clean_data(engine):
                 data_df.loc[index, 'jumlah_produksi'] = avg
                 
         data_df['jumlah_produksi'] = data_df['jumlah_produksi'].round(2)
-        data_df.to_csv(os.path.join(DATASET_CLEANED_PATH, filename), index=False)
+        data_df.to_csv(os.path.join(C.DATASET_CLEANED_PATH, filename), index=False)
         
         update_log('raw', filename, 'cleaned', filename)
             

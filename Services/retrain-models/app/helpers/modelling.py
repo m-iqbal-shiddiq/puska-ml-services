@@ -9,7 +9,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM
 from sklearn.preprocessing import MinMaxScaler
 
-from helpers.constant import DATASET_CLEANED_PATH, DATASET_PREDICTION_PATH, MODEL_PATH, SCALER_PATH, TIMESTEP, TRAIN_PERCENTAGE, EPOCHS
+from database.connection import Config
 from helpers.log import update_log
 
 
@@ -18,31 +18,31 @@ def calculate_mape(row):
     predicted = row['prediction']
     return round(np.abs((actual - predicted) / (actual + 1e-10)) * 100, 2)
 
-def train_data():
+def train_data(C=Config()):
     print('Training model...')
     
-    for filename in os.listdir(DATASET_CLEANED_PATH):
+    for filename in os.listdir(C.DATASET_CLEANED_PATH):
         if not filename.endswith('.csv'):
             continue
         
-        data_df = pd.read_csv(os.path.join(DATASET_CLEANED_PATH, filename))
+        data_df = pd.read_csv(os.path.join(C.DATASET_CLEANED_PATH, filename))
         data_df = data_df.rename(columns={'jumlah_produksi': 'y'})
         
         # scaling data
         scaler = MinMaxScaler(feature_range=(0, 1), clip=True)
         data_df[['y']] = scaler.fit_transform(data_df[['y']])
         
-        joblib.dump(scaler, os.path.join(SCALER_PATH, filename.replace('.csv', '.pkl')))
+        joblib.dump(scaler, os.path.join(C.SCALER_PATH, filename.replace('.csv', '.pkl')))
         update_log('cleaned', filename, 'scaler', filename.replace('.csv', '.pkl'))
         
-        # create timesteps
-        for i in range(1, TIMESTEP + 1):
+        # create C.timesteps
+        for i in range(1, C.TIMESTEP + 1):
             data_df[f'y-{i}'] = data_df['y'].shift(i)
             
-        data_df = data_df.iloc[TIMESTEP:, :].reset_index(drop=True)
+        data_df = data_df.iloc[C.TIMESTEP:, :].reset_index(drop=True)
         
         # split data
-        split_index = int(len(data_df) * TRAIN_PERCENTAGE)
+        split_index = int(len(data_df) * C.TRAIN_PERCENTAGE)
         
         train_df = data_df.iloc[:split_index, :]
         test_df = data_df.iloc[split_index:, :]
@@ -60,10 +60,10 @@ def train_data():
         
         # create model
         model = Sequential()
-        model.add(LSTM(2, input_shape=(1, TIMESTEP)))
+        model.add(LSTM(2, input_shape=(1, C.TIMESTEP)))
         model.add(Dense(1))
         model.compile(loss='mean_squared_error', optimizer='adam')
-        model.fit(x_train, y_train, epochs=EPOCHS, batch_size=1, verbose=2)
+        model.fit(x_train, y_train, epochs=C.EPOCHS, batch_size=1, verbose=2)
         
         # prediction
         train_pred = model.predict(x_train)
@@ -90,9 +90,9 @@ def train_data():
         evaluation_df['created_at'] = datetime.now()
         evaluation_df['latency'] = None
         evaluation_df = evaluation_df[['id_waktu', 'id_lokasi', 'id_unit_peternakan', 'prediction', 'latency', 'mape', 'created_at']]
-        evaluation_df.to_csv(os.path.join(DATASET_PREDICTION_PATH, filename), index=False)
+        evaluation_df.to_csv(os.path.join(C.DATASET_PREDICTION_PATH, filename), index=False)
         
-        model.save(os.path.join(MODEL_PATH, filename.replace('.csv', '.keras')))
+        model.save(os.path.join(C.MODEL_PATH, filename.replace('.csv', '.keras')))
         
         update_log('cleaned', filename, 'prediction', filename)
         update_log('cleaned', filename, 'model', filename.replace('.csv', '.keras'))
