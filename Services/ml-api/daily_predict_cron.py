@@ -12,7 +12,7 @@ C = Config()
 
 def get_connection():
     if C.IS_LOKAL:
-        database_url = f'postgresql://{C.DB_USER_LOCAL}:{C.DB_PASS_LOCAL}@{C.DB_HOST_LOCAL}:{C.DB_PORT_LOCAL}/{C.DB_NAME_LOCAL}'
+        database_url = f'postgresql://{C.DB_USER_LOCAL}:{C.DB_PASS_LOCAL.get_secret_value()}@{C.DB_HOST_LOCAL}:{C.DB_PORT_LOCAL}/{C.DB_NAME_LOCAL}'
         engine = create_engine(database_url)
     else:
         tunnel = SSHTunnelForwarder(
@@ -37,7 +37,8 @@ def main():
     engine = get_connection()
     
     with engine.connect() as connection:
-        tanggal = (datetime.now() - timedelta(1)).strftime("%Y-%m-%d")
+        tanggal = (datetime.now() + timedelta(1)).strftime("%Y-%m-%d")
+        print(tanggal)
         query = text("SELECT id FROM dim_waktu WHERE tanggal = :tanggal")
         result = connection.execute(query, {"tanggal": tanggal})
     
