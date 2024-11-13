@@ -44,7 +44,7 @@ class Config(BaseSettings):
 def get_connection(C=Config()):
     
     if C.IS_LOKAL:
-        database_url = f'postgresql://{C.DB_USER_LOCAL}:{C.DB_PASS_LOCAL}@{C.DB_HOST_LOCAL}:{C.DB_PORT_LOCAL}/{C.DB_NAME_LOCAL}'
+        database_url = f'postgresql://{C.DB_USER_LOCAL}:{C.DB_PASS_LOCAL.get_secret_value()}@{C.DB_HOST_LOCAL}:{C.DB_PORT_LOCAL}/{C.DB_NAME_LOCAL}'
         engine = create_engine(database_url)
     else:
         tunnel = SSHTunnelForwarder(

@@ -27,7 +27,7 @@ def train_data(C=Config()):
         
         data_df = pd.read_csv(os.path.join(C.DATASET_CLEANED_PATH, filename))
         data_df = data_df.rename(columns={'jumlah_produksi': 'y'})
-        
+    
         # scaling data
         scaler = MinMaxScaler(feature_range=(0, 1), clip=True)
         data_df[['y']] = scaler.fit_transform(data_df[['y']])

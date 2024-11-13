@@ -40,7 +40,7 @@ def load_data(engine, C=Config()):
     
     data_df = data_df[['id_waktu', 'id_lokasi', 'id_unit_peternakan', 'date', 'provinsi', 'kabupaten_kota', 'nama_unit', 'jumlah_produksi']]
     time_df = data_df[['id_waktu', 'date']].copy().drop_duplicates().reset_index(drop=True)
-    
+
     # Get provinces data
     provinces = data_df['provinsi'].unique().tolist()
     available_provinces = []
