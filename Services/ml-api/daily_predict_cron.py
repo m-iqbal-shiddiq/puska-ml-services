@@ -32,13 +32,12 @@ def get_connection():
 
 def main():
     
-    URL = "http://127.0.0.1:8000/predict"
+    url = C.URL_PREDICT
     
     engine = get_connection()
     
     with engine.connect() as connection:
         tanggal = (datetime.now() + timedelta(1)).strftime("%Y-%m-%d")
-        print(tanggal)
         query = text("SELECT id FROM dim_waktu WHERE tanggal = :tanggal")
         result = connection.execute(query, {"tanggal": tanggal})
     
@@ -57,7 +56,7 @@ def main():
             'id_lokasi': row['id_lokasi'],
             'id_unit_peternakan': row['id_unit_peternakan']
         }
-        response = requests.post(URL, json=data)
+        response = requests.post(url, json=data)
         print(response.json())
         
 main()

@@ -36,3 +36,5 @@ class Config(BaseSettings):
     DB_HOST_LOCAL: str = Field(alias="DB_HOST_LOCAL")
     DB_PORT_LOCAL: int = Field(alias="DB_PORT_LOCAL")
     DB_NAME_LOCAL: str = Field(alias="DB_NAME_LOCAL")
+    
+    URL_PREDICT: str = Field(alias="URL_PREDICT")
