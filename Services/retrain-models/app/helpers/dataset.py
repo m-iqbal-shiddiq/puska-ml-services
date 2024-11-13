@@ -171,7 +171,7 @@ def load_data(engine, C=Config()):
     if len(logs) > 0:
         log_df = pd.concat([log_df, pd.DataFrame(logs)], ignore_index=True)
         log_df.to_csv(C.LOG_PATH, index=False)
-        
+
 def upload_data(engine, C=Config()):
     
     with engine.connect() as conn:
@@ -183,13 +183,8 @@ def upload_data(engine, C=Config()):
         if not filename.endswith('.csv'):
             continue
         
+        
         data_df = pd.read_csv(os.path.join(C.DATASET_PREDICTION_PATH, filename))
-        data_df['id_waktu'] = data_df['id_waktu'].fillna(0).replace([np.inf, -np.inf], 0)
-        data_df['id_waktu'] = data_df['id_waktu'].astype(int)
-        data_df['id_lokasi'] = data_df['id_lokasi'].fillna(0).replace([np.inf, -np.inf], 0)
-        data_df['id_lokasi'] = data_df['id_lokasi'].astype(int)
-        data_df['id_unit_peternakan'] = data_df['id_unit_peternakan'].fillna(0).replace([np.inf, -np.inf], 0)
-        data_df['id_unit_peternakan'] = data_df['id_unit_peternakan'].astype(int)
         
         data_df['prediction'] = data_df['prediction'].round(2)
         data_df['mape'] = data_df['mape'].round(2)
