@@ -358,6 +358,9 @@ async def create_prediction(predict_request: PredictionRequest, db: Session = De
                     update_prediction.mape = mape
                     update_prediction.latency = latency
                     
+                    if predict_input.id_unit_peternakan is None:
+                        update_prediction.id_unit_peternakan = 999
+               
                     db.commit()
                     
                     return JSONResponse(
@@ -380,14 +383,25 @@ async def create_prediction(predict_request: PredictionRequest, db: Session = De
                     
             else:
                 latency = round(time.time() - start_time, 4)
-                new_prediction = PredSusu(
-                    id_waktu=predict_input.id_waktu,
-                    id_lokasi=predict_input.id_lokasi,
-                    id_unit_peternakan=predict_input.id_unit_peternakan,
-                    prediction=output_predict,
-                    mape=mape,
-                    latency=latency
-                )
+                
+                if predict_input.id_unit_peternakan:
+                    new_prediction = PredSusu(
+                        id_waktu=predict_input.id_waktu,
+                        id_lokasi=predict_input.id_lokasi,
+                        id_unit_peternakan=predict_input.id_unit_peternakan,
+                        prediction=output_predict,
+                        mape=mape,
+                        latency=latency
+                    )
+                else:
+                    new_prediction = PredSusu(
+                        id_waktu=predict_input.id_waktu,
+                        id_lokasi=predict_input.id_lokasi,
+                        id_unit_peternakan=999,
+                        prediction=output_predict,
+                        mape=mape,
+                        latency=latency
+                    )
                 
                 db.add(new_prediction)
                 db.commit()
