@@ -196,6 +196,8 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
     
     if tahun:
         sub_query = sub_query.where(DimWaktu.tahun == tahun)
+    else:
+        sub_query = sub_query.where(DimWaktu.tahun > 2022)
     if provinsi:
         sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
     if kabupaten_kota:
