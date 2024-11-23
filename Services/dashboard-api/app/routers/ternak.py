@@ -531,14 +531,19 @@ def get_total_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str
     
     if tahun:
         sub_query = sub_query.where(DimWaktu.tahun == tahun)
-    else:
-        sub_query = sub_query.where(DimWaktu.tahun > 2022)
+    
     if provinsi:
         sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+        
     if kabupaten_kota:
         sub_query = sub_query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
+    else:
+        sub_query = sub_query.where(DimLokasi.kabupaten_kota.is_(None))
+    
     if kecamatan:
         sub_query = sub_query.where(DimLokasi.kecamatan == kecamatan)
+    else:
+        sub_query = sub_query.where(DimLokasi.kecamatan.is_(None))
         
     sub_query = sub_query.subquery()
     
@@ -614,7 +619,12 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, pe
                 data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Betina', 'Dewasa', 'stream')
                 data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Jantan', 'Anakan', 'stream')
                 data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Betina', 'Anakan', 'stream') 
-                data['total_populasi'] = get_total_populasi(db, tahun, provinsi, kabupaten_kota, wilayah, 'stream')
+                
+                if tahun >= 2023:
+                    data['total_populasi'] = data['perah_dewasa_jantan'] + data['perah_dewasa_betina'] + data['perah_anakan_jantan'] + data['perah_anakan_betina'] + data['pedaging_dewasa_jantan'] + data['pedaging_dewasa_betina'] + data['pedaging_anakan_jantan'] + data['pedaging_anakan_betina']
+                else:
+                    data['total_populasi'] = get_total_populasi(db, tahun, provinsi, kabupaten_kota, wilayah, 'stream')
+                    
             else:
                 data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Jantan', 'Dewasa', 'stream')
                 data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Betina', 'Dewasa', 'stream')
@@ -624,7 +634,11 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, pe
                 data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Betina', 'Dewasa', 'stream')
                 data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Jantan', 'Anakan', 'stream')
                 data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Betina', 'Anakan', 'stream')
-                data['total_populasi'] = get_total_populasi(db, tahun, provinsi, wilayah, None, 'stream')
+                
+                if tahun >= 2023:
+                    data['total_populasi'] = data['perah_dewasa_jantan'] + data['perah_dewasa_betina'] + data['perah_anakan_jantan'] + data['perah_anakan_betina'] + data['pedaging_dewasa_jantan'] + data['pedaging_dewasa_betina'] + data['pedaging_anakan_jantan'] + data['pedaging_anakan_betina']
+                else:
+                    data['total_populasi'] = get_total_populasi(db, tahun, provinsi, wilayah, None, 'stream')
         else:
             data['perah_dewasa_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Jantan', 'Dewasa', 'stream')
             data['perah_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Betina', 'Dewasa', 'stream')
@@ -634,7 +648,11 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, pe
             data['pedaging_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Betina', 'Dewasa', 'stream')
             data['pedaging_anakan_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Jantan', 'Anakan', 'stream')
             data['pedaging_anakan_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Betina', 'Anakan', 'stream')
-            data['total_populasi'] = get_total_populasi(db, tahun, wilayah, None, None, 'stream')
+            
+            if tahun >= 2023:
+                data['total_populasi'] = data['perah_dewasa_jantan'] + data['perah_dewasa_betina'] + data['perah_anakan_jantan'] + data['perah_anakan_betina'] + data['pedaging_dewasa_jantan'] + data['pedaging_dewasa_betina'] + data['pedaging_anakan_jantan'] + data['pedaging_anakan_betina']
+            else:
+                data['total_populasi'] = get_total_populasi(db, tahun, wilayah, None, None, 'stream')
             
         table_populasi.append(data)
     
