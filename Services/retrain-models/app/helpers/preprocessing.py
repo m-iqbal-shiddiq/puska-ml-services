@@ -12,8 +12,11 @@ def clean_data(engine, C=Config()):
         if not filename.endswith(".csv"):
             continue
         
+        print(filename)
+        
         data_df = pd.read_csv(os.path.join(C.DATASET_RAW_PATH, filename))
-        data_df['date'] = pd.to_datetime(data_df['date'], format='%Y-%m-%d')
+        # data_df['date'] = pd.to_datetime(data_df['date'], format='%Y-%m-%d')
+        data_df['date'] = pd.to_datetime(data_df['date'], format='mixed')
         
         date_ranges = pd.date_range(start=data_df['date'].min(), end=data_df['date'].max(), freq='D')
         lost_dates = date_ranges.difference(data_df['date']).tolist()
@@ -40,7 +43,7 @@ def clean_data(engine, C=Config()):
                     'date': date, 
                     'jumlah_produksi': None
                 }
-
+                
             data_df = data_df.sort_values(by='date').reset_index(drop=True)
 
         # check if there is any missing value
@@ -61,6 +64,7 @@ def clean_data(engine, C=Config()):
                 data_df.loc[index, 'jumlah_produksi'] = avg
                 
         data_df['jumlah_produksi'] = data_df['jumlah_produksi'].round(2)
+        data_df['date'] = data_df['date'].dt.strftime('%Y-%m-%d')
         data_df.to_csv(os.path.join(C.DATASET_CLEANED_PATH, filename), index=False)
         
         update_log('raw', filename, 'cleaned', filename)

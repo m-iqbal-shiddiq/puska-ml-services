@@ -77,6 +77,7 @@ class TablePopulasi(BaseModel):
     pedaging_dewasa_betina: int
     pedaging_anakan_jantan: int
     pedaging_anakan_betina: int
+    total_populasi: int
 
 
 # Main Model

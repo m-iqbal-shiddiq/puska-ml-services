@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
+from datetime import datetime, timedelta
 
 from sqlalchemy import text
 
@@ -11,7 +12,15 @@ def load_data(engine, C=Config()):
     log_df = pd.read_csv(C.LOG_PATH)
     logs = []
     
+    nanoseconds_in_a_day = 86400 * 10**9
+    
     print('Loading data from database...')
+    
+    new_date = (datetime.now() + timedelta(1)).strftime("%Y-%m-%d")
+    query = text("SELECT id FROM dim_waktu WHERE tanggal = :tanggal")
+    id_new_date = pd.read_sql(query, engine, params={'tanggal': new_date})
+    id_new_date = id_new_date['id'].values[0]
+    new_date = (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(1)).strftime('%Y-%m-%d %H:%M:%S')
     
     query = """
         SELECT 
@@ -71,6 +80,17 @@ def load_data(engine, C=Config()):
         
         province_df_result = province_df_result[['id_waktu', 'id_lokasi', 'id_unit_peternakan', 'date', 'jumlah_produksi']]
         province_df_result = province_df_result.sort_values('date')
+        
+        print(type(new_date))
+        print(type(province_df_result['date'].tail().values[0]))
+        
+        missing_value_days = np.datetime64(new_date) - province_df_result['date'].tail().values[0]
+        missing_value_days = missing_value_days.astype(int) / nanoseconds_in_a_day
+        
+        if missing_value_days < 30:
+            id_provinsi = province_df_result['id_lokasi'].unique()[0]
+            province_df_result.loc[len(province_df_result)] = [id_new_date, id_provinsi, None, new_date, None]
+            
         province_df_result.to_csv(os.path.join(C.DATASET_RAW_PATH, f'{province}.csv'), index=False)
         
         available_provinces.append(province)
@@ -79,7 +99,6 @@ def load_data(engine, C=Config()):
             'id_unit_peternakan': None,
             'raw': f'{province}.csv'
         })
-    
     
     # Get regencies data
     if len(available_provinces) == 0:
@@ -117,6 +136,13 @@ def load_data(engine, C=Config()):
             
             regency_df_result = regency_df_result[['id_waktu', 'id_lokasi', 'id_unit_peternakan', 'date', 'jumlah_produksi']]
             regency_df_result = regency_df_result.sort_values('date')
+            
+            missing_value_days = np.datetime64(new_date) - regency_df_result['date'].tail().values[0]
+            missing_value_days = missing_value_days.astype(int) / nanoseconds_in_a_day
+            
+            if missing_value_days < 30:        
+                regency_df_result.loc[len(regency_df_result)] = [id_new_date, id_regency, None, new_date, None]
+            
             regency_df_result.to_csv(os.path.join(C.DATASET_RAW_PATH, f'{province}_{regency}.csv'), index=False)
             
             available_regencies[regency] = id_regency
@@ -160,6 +186,13 @@ def load_data(engine, C=Config()):
             
             unit_df_result = unit_df_result[['id_waktu', 'id_lokasi', 'id_unit_peternakan', 'date', 'jumlah_produksi']]
             unit_df_result = unit_df_result.sort_values('date')
+            
+            missing_value_days = np.datetime64(new_date) - unit_df_result['date'].tail().values[0]
+            missing_value_days = missing_value_days.astype(int) / nanoseconds_in_a_day
+            
+            if missing_value_days < 30:
+                unit_df_result.loc[len(unit_df_result)] = [id_new_date, id_location, id_unit, new_date, None]
+            
             unit_df_result.to_csv(os.path.join(C.DATASET_RAW_PATH, f'{regency}_{unit}.csv'), index=False)
             
             logs.append({

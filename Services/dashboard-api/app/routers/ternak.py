@@ -286,7 +286,7 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
     locations = [item[0] for item in locations if item[0] is not None]
     
     not_found_locations = set(locations) - set(data_dict.keys())
-    
+
     if len(not_found_locations) > 0:
         sub_query = (
             db.query(DimWaktu.tahun,
@@ -344,20 +344,25 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
         
     data_result = []
     for key in data_dict.keys():
+        if key is None:
+            continue
         if provinsi:
             if kabupaten_kota:
                 params = {'provinsi': provinsi, 'kabupaten_kota': kabupaten_kota, 'kecamatan': key}
+                title = f'{key}, {kabupaten_kota}, {provinsi}'
             else:    
                 params = {'provinsi': provinsi, 'kabupaten_kota': key}
+                title = f'{key}, {provinsi}'
         else:
             params = {'provinsi': key}
+            title = key
         
         lonlat = db.execute(query_str, params).fetchone()
         lonlat = lonlat[0]
         
         data_result.append({
             'region': lonlat,
-            'title': key,
+            'title': title,
             'populasi': data_dict[key]
         })
     
@@ -428,7 +433,7 @@ def get_ringkasan_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota
         query = db.query(func.sum(sub_query.c.jumlah).label('total_populasi'))
         
         data = query.scalar()
-    
+
     if data:
         return data
     else:
@@ -452,6 +457,8 @@ def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=Non
         
         if tahun:
             sub_query = sub_query.where(DimWaktu.tahun == tahun)
+        else:
+            sub_query = sub_query.where(DimWaktu.tahun > 2022)
         if provinsi:
             sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
         if kabupaten_kota:
@@ -481,6 +488,8 @@ def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=Non
     
         if tahun:
             sub_query = sub_query.where(DimWaktu.tahun == tahun)
+        else:
+            sub_query = sub_query.where(DimWaktu.tahun > 2022)
         if provinsi:
             sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
         if kabupaten_kota:
@@ -493,6 +502,43 @@ def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=Non
             sub_query = sub_query.where(FactPopulasi.jenis_kelamin == jantan_betina)
         if dewasa_anakan:
             sub_query = sub_query.where(FactPopulasi.tipe_usia == dewasa_anakan)
+        
+    sub_query = sub_query.subquery()
+    
+    query = db.query(func.sum(sub_query.c.jumlah).label('total_populasi'))
+    
+    data = query.scalar()
+    
+    if data:
+        return data
+    else:
+        return 0
+    
+def get_total_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, kecamatan:str=None, db_type='stream'):
+    
+    if db_type == 'stream':
+        sub_query = (
+            db.query(FactPopulasiStream.jumlah)
+            .join(DimWaktu, DimWaktu.id == FactPopulasiStream.id_waktu)
+            .join(DimLokasi, DimLokasi.id == FactPopulasiStream.id_lokasi)
+        )
+    else:
+        sub_query = (
+            db.query(FactPopulasi.jumlah)
+            .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
+            .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+        )
+    
+    if tahun:
+        sub_query = sub_query.where(DimWaktu.tahun == tahun)
+    else:
+        sub_query = sub_query.where(DimWaktu.tahun > 2022)
+    if provinsi:
+        sub_query = sub_query.where(DimLokasi.provinsi == provinsi)
+    if kabupaten_kota:
+        sub_query = sub_query.where(DimLokasi.kabupaten_kota == kabupaten_kota)
+    if kecamatan:
+        sub_query = sub_query.where(DimLokasi.kecamatan == kecamatan)
         
     sub_query = sub_query.subquery()
     
@@ -568,6 +614,7 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, pe
                 data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Betina', 'Dewasa', 'stream')
                 data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Jantan', 'Anakan', 'stream')
                 data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, kabupaten_kota, wilayah, 'Pedaging', 'Betina', 'Anakan', 'stream') 
+                data['total_populasi'] = get_total_populasi(db, tahun, provinsi, kabupaten_kota, wilayah, 'stream')
             else:
                 data['perah_dewasa_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Jantan', 'Dewasa', 'stream')
                 data['perah_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Perah', 'Betina', 'Dewasa', 'stream')
@@ -577,6 +624,7 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, pe
                 data['pedaging_dewasa_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Betina', 'Dewasa', 'stream')
                 data['pedaging_anakan_jantan'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Jantan', 'Anakan', 'stream')
                 data['pedaging_anakan_betina'] = get_table_data(db, tahun, provinsi, wilayah, None, 'Pedaging', 'Betina', 'Anakan', 'stream')
+                data['total_populasi'] = get_total_populasi(db, tahun, provinsi, wilayah, None, 'stream')
         else:
             data['perah_dewasa_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Jantan', 'Dewasa', 'stream')
             data['perah_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Perah', 'Betina', 'Dewasa', 'stream')
@@ -586,6 +634,7 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, pe
             data['pedaging_dewasa_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Betina', 'Dewasa', 'stream')
             data['pedaging_anakan_jantan'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Jantan', 'Anakan', 'stream')
             data['pedaging_anakan_betina'] = get_table_data(db, tahun, wilayah, None, None, 'Pedaging', 'Betina', 'Anakan', 'stream')
+            data['total_populasi'] = get_total_populasi(db, tahun, wilayah, None, None, 'stream')
             
         table_populasi.append(data)
     
@@ -667,7 +716,6 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, pe
                             if 'jantan' in key:
                                 row[key] = -1
         
-    
     return table_populasi
                 
 def convert_decimals(obj):
@@ -777,7 +825,7 @@ async def get_ternak_data(db: Session = Depends(get_db),
             })
             
         responses['pro_dis_susu_segar'] = pro_dis_susu_segar_list
- 
+        
         # Sebaran Populasi
         responses['sebaran_populasi_all'] = get_sebaran_populasi_all(db, tahun, provinsi, kabupaten_kota, perah_pedaging, jantan_betina, dewasa_anakan)
        
