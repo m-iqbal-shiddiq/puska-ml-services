@@ -181,17 +181,32 @@ def get_distribusi_series_by_interval(db, id_jenis_produk:int, days=365):
     return sorted_data_dict
     
 def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, perah_pedaging:str=None, jantan_betina:str=None, dewasa_anakan:str=None):
+    
+    latest_waktu_subquery = (
+        db.query(FactPopulasiStream.id_peternakan,
+                 FactPopulasiStream.tipe_ternak,
+                 func.max(FactPopulasiStream.id_waktu).label("max_id_waktu"))
+        .group_by(FactPopulasiStream.id_peternakan)
+        .group_by(FactPopulasiStream.tipe_ternak)
+        .subquery()
+    )
+    
     sub_query = (
         db.query(DimWaktu.tahun,
                  DimLokasi.provinsi,
                  DimLokasi.kabupaten_kota,
                  DimLokasi.kecamatan,
+                 FactPopulasiStream.id_peternakan,
                  FactPopulasiStream.tipe_ternak,
                  FactPopulasiStream.jenis_kelamin,
                  FactPopulasiStream.tipe_usia,
                  FactPopulasiStream.jumlah)
         .join(DimWaktu, DimWaktu.id == FactPopulasiStream.id_waktu)
         .join(DimLokasi, DimLokasi.id == FactPopulasiStream.id_lokasi)
+        .join(latest_waktu_subquery, 
+              (FactPopulasiStream.id_peternakan == latest_waktu_subquery.c.id_peternakan) & 
+              (FactPopulasiStream.tipe_ternak == latest_waktu_subquery.c.tipe_ternak) &
+              (FactPopulasiStream.id_waktu == latest_waktu_subquery.c.max_id_waktu))
     )
     
     if tahun:
@@ -290,17 +305,32 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
     not_found_locations = set(locations) - set(data_dict.keys())
 
     if len(not_found_locations) > 0:
+        
+        latest_waktu_subquery = (
+            db.query(FactPopulasi.id_peternakan,
+                     FactPopulasi.tipe_ternak,
+                    func.max(FactPopulasi.id_waktu).label("max_id_waktu"))
+            .group_by(FactPopulasi.id_peternakan)
+            .group_by(FactPopulasi.tipe_ternak)
+            .subquery()
+        )
+        
         sub_query = (
             db.query(DimWaktu.tahun,
                     DimLokasi.provinsi,
                     DimLokasi.kabupaten_kota,
                     DimLokasi.kecamatan,
+                    FactPopulasi.id_peternakan,
                     FactPopulasi.tipe_ternak,
                     FactPopulasi.jenis_kelamin,
                     FactPopulasi.tipe_usia,
                     FactPopulasi.jumlah)
             .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
             .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+            .join(latest_waktu_subquery, 
+                  (FactPopulasi.id_peternakan == latest_waktu_subquery.c.id_peternakan) & 
+                  (FactPopulasi.tipe_ternak == latest_waktu_subquery.c.tipe_ternak) &
+                  (FactPopulasi.id_waktu == latest_waktu_subquery.c.max_id_waktu))
         )
         
         if tahun:
@@ -371,17 +401,32 @@ def get_sebaran_populasi_all(db, tahun:int=None, provinsi:str=None, kabupaten_ko
     return data_result
     
 def get_ringkasan_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, perah_pedaging:str=None, jantan_betina:str=None, dewasa_anakan:str=None):
+    
+    latest_waktu_subquery = (
+        db.query(FactPopulasiStream.id_peternakan,
+                 FactPopulasiStream.tipe_ternak,
+                 func.max(FactPopulasiStream.id_waktu).label("max_id_waktu"))
+        .group_by(FactPopulasiStream.id_peternakan)
+        .group_by(FactPopulasiStream.tipe_ternak)
+        .subquery()
+    )
+    
     sub_query = (
         db.query(DimWaktu.tahun,
                  DimLokasi.provinsi,
                  DimLokasi.kabupaten_kota,
                  DimLokasi.kecamatan,
+                 FactPopulasiStream.id_peternakan,
                  FactPopulasiStream.tipe_ternak,
                  FactPopulasiStream.jenis_kelamin,
                  FactPopulasiStream.tipe_usia,
                  FactPopulasiStream.jumlah)
         .join(DimWaktu, DimWaktu.id == FactPopulasiStream.id_waktu)
         .join(DimLokasi, DimLokasi.id == FactPopulasiStream.id_lokasi)
+        .join(latest_waktu_subquery, 
+              (FactPopulasiStream.id_peternakan == latest_waktu_subquery.c.id_peternakan) & 
+              (FactPopulasiStream.tipe_ternak == latest_waktu_subquery.c.tipe_ternak) &
+              (FactPopulasiStream.id_waktu == latest_waktu_subquery.c.max_id_waktu))
     )
     
     if tahun:
@@ -404,6 +449,16 @@ def get_ringkasan_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota
     data = query.scalar()
     
     if data is None:
+        
+        latest_waktu_subquery = (
+            db.query(FactPopulasi.id_peternakan,
+                     FactPopulasi.tipe_ternak,
+                    func.max(FactPopulasi.id_waktu).label("max_id_waktu"))
+            .group_by(FactPopulasi.id_peternakan)
+            .group_by(FactPopulasi.tipe_ternak)
+            .subquery()
+        )
+        
         sub_query = (
             db.query(DimWaktu.tahun,
                      DimLokasi.provinsi,
@@ -415,6 +470,10 @@ def get_ringkasan_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota
                      FactPopulasi.jumlah)
             .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
             .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+            .join(latest_waktu_subquery, 
+                  (FactPopulasi.id_peternakan == latest_waktu_subquery.c.id_peternakan) & 
+                  (FactPopulasi.tipe_ternak == latest_waktu_subquery.c.tipe_ternak) &
+                  (FactPopulasi.id_waktu == latest_waktu_subquery.c.max_id_waktu))
         )
         
         if tahun:
@@ -444,6 +503,20 @@ def get_ringkasan_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota
 def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, kecamatan:str=None, perah_pedaging:str=None, jantan_betina:str=None, dewasa_anakan:str=None, db_type='stream'):
     
     if db_type == 'stream':
+        
+        latest_waktu_subquery = (
+            db.query(FactPopulasiStream.id_peternakan,
+                     FactPopulasiStream.jenis_kelamin,
+                     FactPopulasiStream.tipe_ternak,
+                     FactPopulasiStream.tipe_usia,
+                     func.max(FactPopulasiStream.id_waktu).label("max_id_waktu"))
+            .group_by(FactPopulasiStream.id_peternakan)
+            .group_by(FactPopulasiStream.jenis_kelamin)
+            .group_by(FactPopulasiStream.tipe_ternak)
+            .group_by(FactPopulasiStream.tipe_usia)
+            .subquery()
+        )
+        
         sub_query = (
             db.query(DimWaktu.tahun,
                      DimLokasi.provinsi,
@@ -455,6 +528,12 @@ def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=Non
                      FactPopulasiStream.jumlah)
             .join(DimWaktu, DimWaktu.id == FactPopulasiStream.id_waktu)
             .join(DimLokasi, DimLokasi.id == FactPopulasiStream.id_lokasi)
+            .join(latest_waktu_subquery, 
+                  (FactPopulasiStream.id_peternakan == latest_waktu_subquery.c.id_peternakan) &
+                  (FactPopulasiStream.jenis_kelamin == latest_waktu_subquery.c.jenis_kelamin) & 
+                  (FactPopulasiStream.tipe_ternak == latest_waktu_subquery.c.tipe_ternak) &
+                  (FactPopulasiStream.tipe_usia == latest_waktu_subquery.c.tipe_usia) &
+                  (FactPopulasiStream.id_waktu == latest_waktu_subquery.c.max_id_waktu))
         )
         
         if tahun:
@@ -475,6 +554,20 @@ def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=Non
             sub_query = sub_query.where(FactPopulasiStream.tipe_usia == dewasa_anakan)
         
     else:
+        
+        latest_waktu_subquery = (
+            db.query(FactPopulasi.id_peternakan,
+                     FactPopulasi.jenis_kelamin,
+                     FactPopulasi.tipe_ternak,
+                     FactPopulasi.tipe_usia,
+                     func.max(FactPopulasi.id_waktu).label("max_id_waktu"))
+            .group_by(FactPopulasi.id_peternakan)
+            .group_by(FactPopulasi.jenis_kelamin)
+            .group_by(FactPopulasi.tipe_ternak)
+            .group_by(FactPopulasi.tipe_usia)
+            .subquery()
+        )
+        
         sub_query = (
             db.query(DimWaktu.tahun,
                      DimLokasi.provinsi,
@@ -486,6 +579,12 @@ def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=Non
                      FactPopulasi.jumlah)
             .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
             .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+            .join(latest_waktu_subquery, 
+                  (FactPopulasi.id_peternakan == latest_waktu_subquery.c.id_peternakan) &
+                  (FactPopulasi.jenis_kelamin == latest_waktu_subquery.c.jenis_kelamin) & 
+                  (FactPopulasi.tipe_ternak == latest_waktu_subquery.c.tipe_ternak) &
+                  (FactPopulasi.tipe_usia == latest_waktu_subquery.c.tipe_usia) &
+                  (FactPopulasi.id_waktu == latest_waktu_subquery.c.max_id_waktu))
         )
     
         if tahun:
@@ -504,7 +603,7 @@ def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=Non
             sub_query = sub_query.where(FactPopulasi.jenis_kelamin == jantan_betina)
         if dewasa_anakan:
             sub_query = sub_query.where(FactPopulasi.tipe_usia == dewasa_anakan)
-        
+     
     sub_query = sub_query.subquery()
     
     query = db.query(func.sum(sub_query.c.jumlah).label('total_populasi'))
@@ -519,16 +618,44 @@ def get_table_data(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=Non
 def get_total_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, kecamatan:str=None, db_type='stream'):
     
     if db_type == 'stream':
+        
+        latest_waktu_subquery = (
+            db.query(FactPopulasiStream.id_peternakan,
+                    FactPopulasiStream.tipe_ternak,
+                    func.max(FactPopulasiStream.id_waktu).label("max_id_waktu"))
+            .group_by(FactPopulasiStream.id_peternakan)
+            .group_by(FactPopulasiStream.tipe_ternak)
+            .subquery()
+        )
+        
         sub_query = (
             db.query(FactPopulasiStream.jumlah)
             .join(DimWaktu, DimWaktu.id == FactPopulasiStream.id_waktu)
             .join(DimLokasi, DimLokasi.id == FactPopulasiStream.id_lokasi)
+            .join(latest_waktu_subquery, 
+                  (FactPopulasiStream.id_peternakan == latest_waktu_subquery.c.id_peternakan) & 
+                  (FactPopulasiStream.tipe_ternak == latest_waktu_subquery.c.tipe_ternak) &
+                  (FactPopulasiStream.id_waktu == latest_waktu_subquery.c.max_id_waktu))
         )
     else:
+        
+        latest_waktu_subquery = (
+            db.query(FactPopulasi.id_peternakan,
+                    FactPopulasi.tipe_ternak,
+                    func.max(FactPopulasi.id_waktu).label("max_id_waktu"))
+            .group_by(FactPopulasi.id_peternakan)
+            .group_by(FactPopulasi.tipe_ternak)
+            .subquery()
+        )
+        
         sub_query = (
             db.query(FactPopulasi.jumlah)
             .join(DimWaktu, DimWaktu.id == FactPopulasi.id_waktu)
             .join(DimLokasi, DimLokasi.id == FactPopulasi.id_lokasi)
+            .join(latest_waktu_subquery, 
+                  (FactPopulasi.id_peternakan == latest_waktu_subquery.c.id_peternakan) & 
+                  (FactPopulasi.tipe_ternak == latest_waktu_subquery.c.tipe_ternak) &
+                  (FactPopulasi.id_waktu == latest_waktu_subquery.c.max_id_waktu))
         )
     
     if tahun:
@@ -559,6 +686,16 @@ def get_total_populasi(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str
         return 0
      
 def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, perah_pedaging:str=None, dewasa_anakan:str=None, jantan_betina:str=None):
+    
+    latest_waktu_subquery = (
+        db.query(FactPopulasiStream.id_peternakan,
+                 FactPopulasiStream.tipe_ternak,
+                 func.max(FactPopulasiStream.id_waktu).label("max_id_waktu"))
+        .group_by(FactPopulasiStream.id_peternakan)
+        .group_by(FactPopulasiStream.tipe_ternak)
+        .subquery()
+    )
+    
     sub_query = (
         db.query(DimWaktu.tahun,
                  DimLokasi.provinsi,
@@ -567,6 +704,10 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, pe
                  FactPopulasiStream.jumlah)
         .join(DimWaktu, DimWaktu.id == FactPopulasiStream.id_waktu)
         .join(DimLokasi, DimLokasi.id == FactPopulasiStream.id_lokasi)
+        .join(latest_waktu_subquery, 
+              (FactPopulasiStream.id_peternakan == latest_waktu_subquery.c.id_peternakan) & 
+              (FactPopulasiStream.tipe_ternak == latest_waktu_subquery.c.tipe_ternak) &
+              (FactPopulasiStream.id_waktu == latest_waktu_subquery.c.max_id_waktu))
     )
     
     if tahun:
@@ -605,7 +746,7 @@ def get_table(db, tahun:int=None, provinsi:str=None, kabupaten_kota:str=None, pe
         ).all()
         
     wilayah_list = [data[0] for data in query.distinct().all()]
-    
+   
     table_populasi = []
     for wilayah in wilayah_list:
         data = {}
@@ -857,7 +998,7 @@ async def get_ternak_data(db: Session = Depends(get_db),
         
         # Sebaran Populasi
         responses['sebaran_populasi_all'] = get_sebaran_populasi_all(db, tahun, provinsi, kabupaten_kota, perah_pedaging, jantan_betina, dewasa_anakan)
-       
+      
         # Ringkasan Populasi
         responses['ringkasan_populasi'] = {}
         responses['ringkasan_populasi']['jumlah_perah_dewasa'] = get_ringkasan_populasi(db, tahun, provinsi, kabupaten_kota, 'Perah', jantan_betina, 'Dewasa')
